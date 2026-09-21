@@ -13,19 +13,21 @@ module.exports = {
   },
   networks: {
     hardhat: {},
-    arbitrumSepolia: {
-      url: process.env.ARBITRUM_SEPOLIA_RPC || 'https://sepolia-rollup.arbitrum.io/rpc',
+    base: {
+      url: process.env.BASE_RPC || 'https://mainnet.base.org',
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
     baseSepolia: {
       url: process.env.BASE_SEPOLIA_RPC || 'https://sepolia.base.org',
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
     },
+    arbitrumSepolia: {
+      url: process.env.ARBITRUM_SEPOLIA_RPC || 'https://sepolia-rollup.arbitrum.io/rpc',
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+    },
   },
   etherscan: {
-    apiKey: {
-      arbitrumSepolia: process.env.ARBISCAN_API_KEY || '',
-      baseSepolia: process.env.BASESCAN_API_KEY || '',
-    },
+    // Etherscan V2 unified API: one key covers Etherscan, Basescan, Arbiscan.
+    apiKey: process.env.ETHERSCAN_API_KEY || '',
   },
 };

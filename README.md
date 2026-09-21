@@ -51,7 +51,11 @@ That channel requires a plan that includes it; without the entitlement,
 fall back to polling SIP market status over REST and call the same
 `setStockHaltStatus` interface.
 
-## Quick start (Arbitrum Sepolia)
+## Quick start (Base Sepolia)
+
+Aegis is deployed on [Base](https://base.org). The guard contract is plain
+EVM — the same bytecode runs on any OP Stack or Ethereum chain, but Base is
+the reference deployment and the network the oracle relay defaults to.
 
 ```bash
 npm install
@@ -59,13 +63,18 @@ cp .env.example .env   # fill in PRIVATE_KEY (testnet), POLYGON_API_KEY
 npm run compile
 npm test               # unit tests: halt/resume, cap breach, day rollover, ACL
 
-npm run deploy:arbitrum-sepolia
+npm run deploy:base-sepolia
 # paste the deployed address into .env as GUARD_ADDRESS, then:
 npm run start:oracle
 ```
 
-With `VERIFY=true` and an Arbiscan API key set, deployment also verifies the
-contract source on the explorer.
+For mainnet, use `npm run deploy:base` with `BASE_RPC` and a funded deployer
+key. Arbitrum Sepolia remains available via `npm run deploy:arbitrum-sepolia`
+for cross-chain testing.
+
+With `VERIFY=true` and an [Etherscan V2](https://docs.etherscan.io/) API key
+set (one key covers Basescan, Arbiscan, and Etherscan), deployment also
+verifies the contract source on the explorer.
 
 ## Repository layout
 

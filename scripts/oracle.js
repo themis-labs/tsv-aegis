@@ -20,9 +20,7 @@ if (!process.env.PRIVATE_KEY || !CONTRACT_ADDRESS) {
   process.exit(1);
 }
 
-const provider = new ethers.JsonRpcProvider(
-  process.env.RPC_URL || 'https://sepolia-rollup.arbitrum.io/rpc',
-);
+const provider = new ethers.JsonRpcProvider(process.env.RPC_URL || 'https://sepolia.base.org');
 const signer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 const guard = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
 
