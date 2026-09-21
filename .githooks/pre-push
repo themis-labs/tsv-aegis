@@ -1,0 +1,6 @@
+#!/bin/sh
+# Don't push red tests.
+npx hardhat test || {
+  echo "pre-push: hardhat test failed, push aborted" >&2
+  exit 1
+}

@@ -1,0 +1,39 @@
+{
+  "name": "tsv-aegis",
+  "version": "1.0.0",
+  "description": "Aegis — on-chain compliance circuit breaker for tokenized NMS stock trading under the SEC Innovation Exemption (2026-09-17)",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "format": "prettier --write .",
+    "lint": "solhint 'contracts/**/*.sol' && prettier --check .",
+    "deploy:arbitrum-sepolia": "hardhat run scripts/deploy.js --network arbitrumSepolia",
+    "deploy:base-sepolia": "hardhat run scripts/deploy.js --network baseSepolia",
+    "start:oracle": "node scripts/oracle.js"
+  },
+  "keywords": [
+    "sec-compliance",
+    "tsv",
+    "rwa",
+    "tokenized-stock",
+    "circuit-breaker",
+    "oracle",
+    "arbitrum",
+    "base"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.1",
+    "dotenv": "^16.4.5",
+    "ethers": "^6.11.1",
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.2",
+    "prettier": "^3.2.5",
+    "prettier-plugin-solidity": "^1.3.1",
+    "solhint": "^4.5.2",
+    "solhint-plugin-prettier": "^0.1.0"
+  }
+}

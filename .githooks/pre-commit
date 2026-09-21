@@ -1,0 +1,16 @@
+#!/bin/sh
+# Format staged source files in place, then re-stage them.
+# Formatting never blocks a commit; solhint warnings are printed but non-fatal.
+
+files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(sol|js|json|md)$' || true)
+[ -z "$files" ] && exit 0
+
+echo "$files" | xargs npx prettier --write --log-level warn
+echo "$files" | xargs git add
+
+sol_files=$(echo "$files" | grep -E '\.sol$' || true)
+if [ -n "$sol_files" ]; then
+  echo "$sol_files" | xargs npx solhint || true
+fi
+
+exit 0
