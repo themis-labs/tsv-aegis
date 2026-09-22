@@ -13,6 +13,18 @@ halt of the underlying NMS stock on its primary listing exchange, and
 This middleware puts both conditions on-chain so any AMM or venue can
 inherit them with a single check.
 
+## Scope & disclaimer
+
+TSV Aegis is open-source developer tooling and a reference implementation.
+It does not operate a trading venue, issue securities, provide brokerage
+services, custody assets, perform KYC/AML, or guarantee regulatory
+compliance. Market-data integrations are optional, subject to provider
+entitlements, and require independent validation by each deployer.
+
+The Base Sepolia deployment uses simulated events and test assets only. It
+is not production infrastructure and must not be used to facilitate live
+securities trading.
+
 ## Architecture
 
 ```mermaid
