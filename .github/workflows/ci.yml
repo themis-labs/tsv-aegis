@@ -44,8 +44,12 @@ jobs:
 
       - run: npm ci
 
+      # Target must be the project root so crytic-compile detects
+      # hardhat.config.js and compiles via hardhat (resolving node_modules
+      # imports); pointing it at contracts/ falls back to raw solc.
       - uses: crytic/slither-action@v0.4.0
         with:
-          target: contracts/
+          target: .
           fail-on: medium
           node-version: 22
+          slither-args: --exclude-dependencies
