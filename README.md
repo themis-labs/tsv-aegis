@@ -29,10 +29,18 @@ securities trading.
 
 ```mermaid
 flowchart LR
-    A[US market data feed<br/>Polygon.io / Alpaca WebSocket] --> B[oracle.js<br/>relay node]
+    A[US market data<br/>Polygon.io · v1<br/>Chainlink 24/5 Streams · v2] --> B[oracle.js<br/>relay node]
     B -->|setStockHaltStatus / recordVolume| C[TSVGuard.sol]
     C -->|tradingEnabled\(\)| D[AMM pool / TSV venue]
+    C -->|status events| E[ERC-8391-compatible<br/>status surface · planned]
 ```
+
+The data-source side is pluggable: v1 relays Polygon.io LULD signals, v2
+adds a native Chainlink 24/5 U.S. Equities Streams adapter
+([#4](https://github.com/themis-labs/tsv-aegis/issues/4)). The execution
+side will expose halt status through an ERC-8391-compatible interface so
+integrators read a standard enum instead of project-specific getters
+([#3](https://github.com/themis-labs/tsv-aegis/issues/3)).
 
 Two independent stop conditions, two separate flags:
 
@@ -49,19 +57,40 @@ with a permissionless `rollDay()` that Keepers-style automation can call.
 
 This repo is the grant-demo MVP. The oracle is a single relay key
 (`ORACLE_ROLE`), and volume accounting is recorded by the relay rather than
-intercepted inside the swap path. The production evolution (tracked in the
-project notes) replaces these with: multi-source threshold signatures
+intercepted inside the swap path. The production evolution (see Roadmap
+below) replaces these with: multi-source threshold signatures
 (2-of-3), private-mempool submission for halt transactions, Uniswap v4
 `beforeSwap` atomic interception, and ERC-3643 `canTransfer` coverage for
 off-venue transfers. Coverage is limited to pools and tokens that integrate
 the guard — liquidity elsewhere is out of scope by design.
+
+## Roadmap
+
+- **v1 (this repo)** — Polygon.io LULD relay, single `ORACLE_ROLE`,
+  relay-recorded volume accounting. Goal: prove the two stop conditions
+  on-chain with minimal surface.
+- **v2** — ERC-8391-compatible asset status surface
+  ([#3](https://github.com/themis-labs/tsv-aegis/issues/3)); Chainlink
+  24/5 U.S. Equities Streams as a native on-chain status source, removing
+  the single-relay trust assumption
+  ([#4](https://github.com/themis-labs/tsv-aegis/issues/4)).
+- **Production hardening** — multi-source threshold signatures (2-of-3),
+  private-mempool submission for halt transactions, Uniswap v4
+  `beforeSwap` atomic interception, ERC-3643 `canTransfer` coverage for
+  off-venue transfers.
+
+Halt synchronization minimizes the cross-market arbitrage window; it does
+not promise zero-latency parity with the primary exchange — propagation
+and block times always apply.
 
 ## Data source notes
 
 `oracle.js` subscribes to Polygon.io's stocks WebSocket (`LULD.<ticker>`).
 That channel requires a plan that includes it; without the entitlement,
 fall back to polling SIP market status over REST and call the same
-`setStockHaltStatus` interface.
+`setStockHaltStatus` interface. The v2 Chainlink adapter consumes the
+24/5 equities streams' market-status field instead, which removes the
+polling trust assumption entirely.
 
 ## Quick start (Base Sepolia)
 
