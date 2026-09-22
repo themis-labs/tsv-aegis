@@ -39,6 +39,9 @@ contract TSVGuard is AccessControl {
 
     /// @notice Daily total after lazy day rollover (no write required).
     function effectiveDailyVolume() public view returns (uint256) {
+        // Strict equality is intended: day indices are discrete UTC-day
+        // counters, so "same day" is exactly the condition we want.
+        // slither-disable-next-line incorrect-equality
         return uint64(block.timestamp / 1 days) == currentDay ? currentDailyVolume : 0;
     }
 

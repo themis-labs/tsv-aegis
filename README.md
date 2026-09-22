@@ -13,6 +13,18 @@ halt of the underlying NMS stock on its primary listing exchange, and
 This middleware puts both conditions on-chain so any AMM or venue can
 inherit them with a single check.
 
+## Scope & disclaimer
+
+TSV Aegis is open-source developer tooling and a reference implementation.
+It does not operate a trading venue, issue securities, provide brokerage
+services, custody assets, perform KYC/AML, or guarantee regulatory
+compliance. Market-data integrations are optional, subject to provider
+entitlements, and require independent validation by each deployer.
+
+The Base Sepolia deployment uses simulated events and test assets only. It
+is not production infrastructure and must not be used to facilitate live
+securities trading.
+
 ## Architecture
 
 ```mermaid
@@ -51,7 +63,11 @@ That channel requires a plan that includes it; without the entitlement,
 fall back to polling SIP market status over REST and call the same
 `setStockHaltStatus` interface.
 
-## Quick start (Arbitrum Sepolia)
+## Quick start (Base Sepolia)
+
+Aegis is deployed on [Base](https://base.org). The guard contract is plain
+EVM — the same bytecode runs on any OP Stack or Ethereum chain, but Base is
+the reference deployment and the network the oracle relay defaults to.
 
 ```bash
 npm install
@@ -59,13 +75,18 @@ cp .env.example .env   # fill in PRIVATE_KEY (testnet), POLYGON_API_KEY
 npm run compile
 npm test               # unit tests: halt/resume, cap breach, day rollover, ACL
 
-npm run deploy:arbitrum-sepolia
+npm run deploy:base-sepolia
 # paste the deployed address into .env as GUARD_ADDRESS, then:
 npm run start:oracle
 ```
 
-With `VERIFY=true` and an Arbiscan API key set, deployment also verifies the
-contract source on the explorer.
+For mainnet, use `npm run deploy:base` with `BASE_RPC` and a funded deployer
+key. Arbitrum Sepolia remains available via `npm run deploy:arbitrum-sepolia`
+for cross-chain testing.
+
+With `VERIFY=true` and an [Etherscan V2](https://docs.etherscan.io/) API key
+set (one key covers Basescan, Arbiscan, and Etherscan), deployment also
+verifies the contract source on the explorer.
 
 ## Repository layout
 

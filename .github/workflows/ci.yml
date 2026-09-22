@@ -3,7 +3,13 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - LICENSE
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - LICENSE
 
 jobs:
   test:
@@ -35,7 +41,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Slither shells out to hardhat for compilation, so the workspace needs
+      # node_modules (for @openzeppelin imports) and a Node runtime.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # Target must be the project root so crytic-compile detects
+      # hardhat.config.js and compiles via hardhat (resolving node_modules
+      # imports); pointing it at contracts/ falls back to raw solc.
       - uses: crytic/slither-action@v0.4.0
         with:
-          target: contracts/
+          target: .
           fail-on: medium
+          node-version: 22
+          slither-args: --exclude-dependencies
