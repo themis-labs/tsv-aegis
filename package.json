@@ -10,7 +10,8 @@
     "deploy:base": "hardhat run scripts/deploy.js --network base",
     "deploy:base-sepolia": "hardhat run scripts/deploy.js --network baseSepolia",
     "deploy:arbitrum-sepolia": "hardhat run scripts/deploy.js --network arbitrumSepolia",
-    "start:oracle": "node scripts/oracle.js"
+    "start:oracle": "node scripts/oracle.js",
+    "simulate": "hardhat run scripts/simulate.js"
   },
   "keywords": [
     "sec-compliance",
