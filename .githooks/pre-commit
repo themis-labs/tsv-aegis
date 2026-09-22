@@ -2,6 +2,20 @@
 # Format staged source files in place, then re-stage them.
 # Formatting never blocks a commit; solhint warnings are printed but non-fatal.
 
+# Hard block: secrets never enter history. gitignore is the first line of
+# defense; this catches forced `git add -f` and lookalike file names.
+blocked=$(git diff --cached --name-only | grep -E '(^|/)\.env($|\.)|\.(pem|key|p12)$' | grep -v '^\.env\.example$' || true)
+if [ -n "$blocked" ]; then
+  echo "pre-commit: refusing to commit sensitive files:" >&2
+  echo "$blocked" >&2
+  exit 1
+fi
+
+if git diff --cached -U0 -- . ':(exclude).env.example' | grep -E '^\+' | grep -qE 'PRIVATE_KEY=0x[0-9a-fA-F]{64}'; then
+  echo "pre-commit: staged diff contains what looks like a real PRIVATE_KEY" >&2
+  exit 1
+fi
+
 files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(sol|js|json|md)$' || true)
 [ -z "$files" ] && exit 0
 
