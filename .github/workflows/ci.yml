@@ -24,6 +24,10 @@ jobs:
 
       - run: npm ci
 
+      # Backstop for the local pre-commit guard (hooks can be bypassed).
+      - name: Secret scan
+        run: "! git grep -E 'PRIVATE_KEY=0x[0-9a-fA-F]{64}' -- . ':(exclude).env.example'"
+
       - run: npx hardhat compile
 
       - run: npx hardhat test

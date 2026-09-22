@@ -4,3 +4,8 @@ cache/
 coverage/
 coverage.json
 .env
+.env.*
+!.env.example
+*.log
+*.pem
+*.key
