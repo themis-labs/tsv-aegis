@@ -16,7 +16,7 @@ if git diff --cached -U0 -- . ':(exclude).env.example' | grep -E '^\+' | grep -q
   exit 1
 fi
 
-files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(sol|js|json|md)$' || true)
+files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(sol|js|json|ya?ml|md)$' || true)
 [ -z "$files" ] && exit 0
 
 echo "$files" | xargs npx prettier --write --log-level warn
