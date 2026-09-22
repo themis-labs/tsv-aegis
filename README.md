@@ -29,10 +29,10 @@ securities trading.
 
 ```mermaid
 flowchart LR
-    A[US market data<br/>Polygon.io · v1<br/>Chainlink 24/5 Streams · v2] --> B[oracle.js<br/>relay node]
-    B -->|setStockHaltStatus / recordVolume| C[TSVGuard.sol]
-    C -->|tradingEnabled\(\)| D[AMM pool / TSV venue]
-    C -->|status events| E[ERC-8391-compatible<br/>status surface · planned]
+    A["US market data<br/>Polygon.io (v1)<br/>Chainlink 24/5 Streams (v2)"] --> B["oracle.js<br/>relay node"]
+    B -->|"setStockHaltStatus / recordVolume"| C["TSVGuard.sol"]
+    C -->|"tradingEnabled()"| D["AMM pool / TSV venue"]
+    C -->|"status events"| E["ERC-8391-compatible<br/>status surface (planned)"]
 ```
 
 The data-source side is pluggable: v1 relays Polygon.io LULD signals, v2
@@ -53,11 +53,11 @@ Keeping the flags separate matters: a day rollover must never clear an
 active market halt. Day rollover is lazy (derived from `block.timestamp`)
 with a permissionless `rollDay()` that Keepers-style automation can call.
 
-## MVP scope — and what it is not
+## Current scope — and what it is not
 
-This repo is the grant-demo MVP. The oracle is a single relay key
-(`ORACLE_ROLE`), and volume accounting is recorded by the relay rather than
-intercepted inside the swap path. The production evolution (see Roadmap
+This repo is the v1 reference implementation. The oracle is a single relay
+key (`ORACLE_ROLE`), and volume accounting is recorded by the relay rather
+than intercepted inside the swap path. The production evolution (see Roadmap
 below) replaces these with: multi-source threshold signatures
 (2-of-3), private-mempool submission for halt transactions, Uniswap v4
 `beforeSwap` atomic interception, and ERC-3643 `canTransfer` coverage for
