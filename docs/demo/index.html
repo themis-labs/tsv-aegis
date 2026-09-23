@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Aegis — live demo (Base Sepolia)</title>
+    <style>
+      :root {
+        --bg: #0d1117;
+        --panel: #161b22;
+        --border: #30363d;
+        --text: #e6edf3;
+        --muted: #8b949e;
+        --green: #3fb950;
+        --red: #f85149;
+        --blue: #0052ff;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font:
+          15px/1.5 -apple-system,
+          'Segoe UI',
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+      }
+      main {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 32px 20px 64px;
+      }
+      header {
+        display: flex;
+        align-items: baseline;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      h1 {
+        font-size: 22px;
+        margin: 0;
+      }
+      .badge {
+        font:
+          12px/1 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        color: var(--muted);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 4px 10px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 20px;
+        margin-top: 20px;
+      }
+      #status-line {
+        font:
+          700 20px/1.2 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        margin: 0 0 12px;
+      }
+      #status-line.ok {
+        color: var(--green);
+      }
+      #status-line.halted {
+        color: var(--red);
+      }
+      dl {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 6px 16px;
+        margin: 0;
+      }
+      dt {
+        color: var(--muted);
+      }
+      dd {
+        margin: 0;
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 13px;
+        word-break: break-all;
+      }
+      a {
+        color: var(--blue);
+      }
+      button {
+        font: 600 14px/1 inherit;
+        color: #fff;
+        background: var(--blue);
+        border: 0;
+        border-radius: 6px;
+        padding: 10px 16px;
+        cursor: pointer;
+      }
+      button.secondary {
+        background: transparent;
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+      button.danger {
+        background: var(--red);
+      }
+      button:disabled {
+        opacity: 0.4;
+        cursor: not-allowed;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-top: 14px;
+      }
+      input {
+        width: 110px;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 6px;
+        padding: 9px 10px;
+        font:
+          13px ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      #log {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        font:
+          12.5px/1.7 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+      }
+      #log li {
+        border-top: 1px solid var(--border);
+        padding: 6px 0;
+        word-break: break-all;
+      }
+      #log li:first-child {
+        border-top: 0;
+      }
+      #log .t {
+        color: var(--muted);
+        margin-right: 8px;
+      }
+      .hint {
+        color: var(--muted);
+        font-size: 13px;
+        margin-top: 10px;
+      }
+      footer {
+        margin-top: 28px;
+        color: var(--muted);
+        font-size: 12.5px;
+        line-height: 1.6;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>Aegis — live demo</h1>
+        <span class="badge">Base Sepolia · chain 84532</span>
+      </header>
+
+      <section class="card">
+        <p id="status-line">loading…</p>
+        <dl>
+          <dt>market halt (LULD)</dt>
+          <dd id="d-halt">—</dd>
+          <dt>volume today / cap</dt>
+          <dd id="d-vol">—</dd>
+          <dt>guard contract</dt>
+          <dd><a id="d-guard" href="#" target="_blank" rel="noopener"></a></dd>
+          <dt>demo venue</dt>
+          <dd><a id="d-venue" href="#" target="_blank" rel="noopener"></a></dd>
+        </dl>
+      </section>
+
+      <section class="card">
+        <div class="row">
+          <button id="btn-connect">Connect wallet</button>
+          <span class="hint" id="wallet-hint"
+            >reads work without a wallet; actions need one on Base Sepolia</span
+          >
+        </div>
+        <div class="row">
+          <button id="btn-halt" class="danger" disabled>Trigger mock LULD halt</button>
+          <button id="btn-resume" class="secondary" disabled>Resume trading</button>
+        </div>
+        <div class="row">
+          <input id="trade-amount" type="number" min="1" value="1000" />
+          <button id="btn-trade" disabled>Attempt trade</button>
+        </div>
+        <p class="hint">
+          Halt/resume are relay calls gated by <code>ORACLE_ROLE</code> — any other wallet gets
+          rejected by the contract, which is the point. A trade sent while halted is mined and
+          reverted on-chain, leaving a public receipt.
+        </p>
+      </section>
+
+      <section class="card">
+        <ul id="log"></ul>
+      </section>
+
+      <footer>
+        Open-source reference implementation. Simulated events and test assets on a public testnet
+        only — not a trading venue, not production infrastructure.
+        <a href="https://github.com/themis-labs/tsv-aegis">github.com/themis-labs/tsv-aegis</a>
+      </footer>
+    </main>
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/ethers@6.13.4/dist/ethers.umd.min.js"
+      integrity="sha384-6Zl0Pc8zjSz8KvmNeXRvUQgY4ryFb+BwDvKCmLYcBME0joAaru491tQgi9B7zsMM"
+      crossorigin="anonymous"
+    ></script>
+    <script>
+      const GUARD_ADDRESS = '0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433';
+      const VENUE_ADDRESS = '0x0A63F3Bf0d9d1bF7b395F924c9d5fd70efA61E87';
+      const CHAIN_ID = 84532n;
+      const EXPLORER = 'https://sepolia.basescan.org';
+
+      const GUARD_ABI = [
+        'function tradingEnabled() view returns (bool)',
+        'function marketHalted() view returns (bool)',
+        'function effectiveDailyVolume() view returns (uint256)',
+        'function maxDailyCap() view returns (uint256)',
+        'function setStockHaltStatus(bool isHalted)',
+      ];
+      const VENUE_ABI = ['function trade(uint256 amount)'];
+
+      const readProvider = new ethers.JsonRpcProvider('https://sepolia.base.org');
+      const guardRead = new ethers.Contract(GUARD_ADDRESS, GUARD_ABI, readProvider);
+      let signer = null;
+
+      const $ = (id) => document.getElementById(id);
+
+      function log(msg, txHash) {
+        const li = document.createElement('li');
+        const t = document.createElement('span');
+        t.className = 't';
+        t.textContent = new Date().toISOString().slice(11, 19) + 'Z';
+        li.appendChild(t);
+        li.appendChild(document.createTextNode(msg));
+        if (txHash) {
+          li.appendChild(document.createTextNode(' '));
+          const a = document.createElement('a');
+          a.href = `${EXPLORER}/tx/${txHash}`;
+          a.target = '_blank';
+          a.rel = 'noopener';
+          a.textContent = txHash.slice(0, 14) + '…';
+          li.appendChild(a);
+        }
+        $('log').prepend(li);
+      }
+
+      async function refresh() {
+        try {
+          const [enabled, halted, vol, cap] = await Promise.all([
+            guardRead.tradingEnabled(),
+            guardRead.marketHalted(),
+            guardRead.effectiveDailyVolume(),
+            guardRead.maxDailyCap(),
+          ]);
+          const line = $('status-line');
+          line.textContent = enabled ? 'TRADING ENABLED' : 'TRADING HALTED';
+          line.className = enabled ? 'ok' : 'halted';
+          $('d-halt').textContent = halted ? 'halted (LULD relay)' : 'none';
+          $('d-vol').textContent =
+            `${ethers.formatUnits(vol, 18)} / ${ethers.formatUnits(cap, 18)}`;
+        } catch (err) {
+          $('status-line').textContent = 'rpc read failed — retrying';
+        }
+      }
+
+      async function ensureChain() {
+        const chainId = (await signer.provider.getNetwork()).chainId;
+        if (chainId === CHAIN_ID) return;
+        try {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x' + CHAIN_ID.toString(16) }],
+          });
+        } catch (err) {
+          if (err.code !== 4902) throw err;
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [
+              {
+                chainId: '0x' + CHAIN_ID.toString(16),
+                chainName: 'Base Sepolia',
+                rpcUrls: ['https://sepolia.base.org'],
+                nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+                blockExplorerUrls: [EXPLORER],
+              },
+            ],
+          });
+        }
+      }
+
+      $('btn-connect').onclick = async () => {
+        if (!window.ethereum) {
+          log('no injected wallet found — install MetaMask or any EIP-1193 wallet');
+          return;
+        }
+        signer = await new ethers.BrowserProvider(window.ethereum).getSigner();
+        await ensureChain();
+        const addr = await signer.getAddress();
+        $('btn-connect').textContent = addr.slice(0, 6) + '…' + addr.slice(-4);
+        $('btn-connect').disabled = true;
+        $('wallet-hint').textContent = 'connected on Base Sepolia';
+        for (const id of ['btn-halt', 'btn-resume', 'btn-trade']) $(id).disabled = false;
+        log(`connected ${addr}`);
+      };
+
+      async function send(label, fn) {
+        try {
+          const tx = await fn();
+          log(`${label}: sent`, tx.hash);
+          await tx.wait();
+          log(`${label}: confirmed`);
+          await refresh();
+        } catch (err) {
+          if (err.code === 'ACTION_REJECTED') {
+            log(`${label}: rejected in wallet`);
+          } else if (err.receipt && err.receipt.hash) {
+            // Mined but reverted — the receipt on the explorer is the evidence.
+            log(`${label}: reverted on-chain`, err.receipt.hash);
+            await refresh();
+          } else {
+            log(`${label}: ${err.shortMessage || err.message}`);
+          }
+        }
+      }
+
+      $('btn-halt').onclick = () =>
+        send('mock LULD halt', () =>
+          new ethers.Contract(GUARD_ADDRESS, GUARD_ABI, signer).setStockHaltStatus(true),
+        );
+
+      $('btn-resume').onclick = () =>
+        send('resume signal', () =>
+          new ethers.Contract(GUARD_ADDRESS, GUARD_ABI, signer).setStockHaltStatus(false),
+        );
+
+      $('btn-trade').onclick = () => {
+        const amount = BigInt($('trade-amount').value || '0');
+        // Explicit gasLimit skips pre-flight estimation so a halted trade is
+        // actually mined and reverts on-chain instead of dying in the wallet.
+        return send('trade attempt', () =>
+          new ethers.Contract(VENUE_ADDRESS, VENUE_ABI, signer).trade(amount, { gasLimit: 100000 }),
+        );
+      };
+
+      $('d-guard').href = `${EXPLORER}/address/${GUARD_ADDRESS}`;
+      $('d-guard').textContent = GUARD_ADDRESS;
+      $('d-venue').href = `${EXPLORER}/address/${VENUE_ADDRESS}`;
+      $('d-venue').textContent = VENUE_ADDRESS;
+
+      refresh();
+      setInterval(refresh, 12000);
+    </script>
+  </body>
+</html>
