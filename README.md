@@ -117,6 +117,29 @@ With `VERIFY=true` and an [Etherscan V2](https://docs.etherscan.io/) API key
 set (one key covers Basescan, Arbiscan, and Etherscan), deployment also
 verifies the contract source on the explorer.
 
+## Deployment record (Base Sepolia)
+
+- **Network:** Base Sepolia
+- **Chain ID:** 84532
+- **TSVGuard:** [`0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433`](https://sepolia.basescan.org/address/0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433)
+- **Deploy tx:** [`0x897e003291749bbca87e3e64c1c8b3d96d846fb606228f6f49f17c8972de87c8`](https://sepolia.basescan.org/tx/0x897e003291749bbca87e3e64c1c8b3d96d846fb606228f6f49f17c8972de87c8)
+- **Source verification:** [verified on Basescan](https://sepolia.basescan.org/address/0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433#code)
+- **Deployed from commit:** `b9adc62c801ad3ba50b076a424867d8650faa9d7`
+
+End-to-end halt rehearsal against this deployment (full terminal log:
+[`docs/e2e-simulation-base-sepolia.log`](docs/e2e-simulation-base-sepolia.log)):
+
+| Step                                            | Tx hash                                                              |
+| ----------------------------------------------- | -------------------------------------------------------------------- |
+| Pre-halt trade (succeeded)                      | `0x630f812cdb91159379280095c7ba44435ab752367efa95ea26c42071cafac8c0` |
+| Mock LULD halt signal (`setStockHaltStatus`)    | `0x5a9ea0a774c9cc04d2bffbfcd60f2da6c5af875d63710943d57b6c7586778a43` |
+| Trade during halt (reverted on-chain, as mined) | `0x59862278eb772163d309740cec7249ea1c6905a733bb61cb4f69b65b8150c16d` |
+| Resume signal                                   | `0xeb7d05e83056758da671b68621b08d7b6e6548833f4e4915a99cd4694d49b350` |
+| Post-resume trade (succeeded)                   | `0x8cbbc6e47103d8cf3ff2c2c56f2baac079da3e02b130d467d1d79e59e88ae1ef` |
+
+All transactions are test assets on a public testnet; see the disclaimer
+above.
+
 ## Repository layout
 
 ```
@@ -127,6 +150,7 @@ scripts/deploy.js               cross-chain deploy + optional source verificatio
 scripts/oracle.js               LULD listener relaying halt signals on-chain
 scripts/simulate.js             end-to-end halt simulation against a deployed guard
 test/TSVGuard.test.js           unit tests
+docs/e2e-simulation-base-sepolia.log  recorded e2e halt rehearsal on Base Sepolia
 ```
 
 ## Compliance mapping
