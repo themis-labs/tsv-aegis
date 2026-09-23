@@ -125,6 +125,7 @@ verifies the contract source on the explorer.
 - **Deploy tx:** [`0x897e003291749bbca87e3e64c1c8b3d96d846fb606228f6f49f17c8972de87c8`](https://sepolia.basescan.org/tx/0x897e003291749bbca87e3e64c1c8b3d96d846fb606228f6f49f17c8972de87c8)
 - **Source verification:** [verified on Basescan](https://sepolia.basescan.org/address/0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433#code)
 - **Deployed from commit:** `b9adc62c801ad3ba50b076a424867d8650faa9d7`
+- **Live demo:** [themis-labs.github.io/tsv-aegis/demo](https://themis-labs.github.io/tsv-aegis/demo/) — read the guard state, relay a mock halt, or fire a trade against the demo venue straight from a wallet
 
 End-to-end halt rehearsal against this deployment (full terminal log:
 [`docs/e2e-simulation-base-sepolia.log`](docs/e2e-simulation-base-sepolia.log)):
@@ -151,6 +152,7 @@ scripts/oracle.js               LULD listener relaying halt signals on-chain
 scripts/simulate.js             end-to-end halt simulation against a deployed guard
 test/TSVGuard.test.js           unit tests
 docs/e2e-simulation-base-sepolia.log  recorded e2e halt rehearsal on Base Sepolia
+docs/demo/index.html          wallet-driven live demo against the Base Sepolia deployment
 ```
 
 ## Compliance mapping
