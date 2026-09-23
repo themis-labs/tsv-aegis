@@ -1,0 +1,15 @@
+
+> tsv-aegis@1.0.0 simulate
+> hardhat run scripts/simulate.js --network base
+
+Signer: 0x84E2E8BC8d5F511f60774f2191d1149ca0dd3643
+Reusing TSVGuard at 0x0A63F3Bf0d9d1bF7b395F924c9d5fd70efA61E87
+MockVenue deployed at 0x94E05818C64E719b1E895519C2b779126aD751fd
+1. pre-halt trade (should succeed): tx 0x5f2888633d00b06e75df50adda89954ab33bba5e25da76603e3be2140d7c17fc
+2. mock LULD halt signal: tx 0xbbd81f87072fb690eb1c1fd21e6c555cded0b4e5d77cee706b8a0162ea6fdac5
+3. tradingEnabled() after halt: false
+4. trade during halt rejected: transaction execution reverted
+   rejected tx hash: 0x525b093f0ab0ae084db26093302ab32024a593a21bbf861af346d43aacad690e
+5. resume signal: tx 0x91e4384f9bb20144f59a88fad74af079bb9d7318ad3063a08506b7cc5a737a22
+6. post-resume trade (should succeed): tx 0xdb4f33d2358ff37427b3e93416e4299d66a74228648e468e4410f4736c74586e
+End-to-end simulation complete.
