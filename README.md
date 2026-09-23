@@ -21,9 +21,11 @@ services, custody assets, perform KYC/AML, or guarantee regulatory
 compliance. Market-data integrations are optional, subject to provider
 entitlements, and require independent validation by each deployer.
 
-The Base Sepolia deployment uses simulated events and test assets only. It
-is not production infrastructure and must not be used to facilitate live
-securities trading.
+The Base Sepolia deployment uses simulated events and test assets only. The
+Base mainnet deployment runs the same rehearsal setup against a demo venue
+with oracle-relayed mock halt signals — it touches no live market data and
+no real securities. Neither deployment is production infrastructure, and
+neither must be used to facilitate live securities trading.
 
 ## Architecture
 
@@ -117,6 +119,30 @@ With `VERIFY=true` and an [Etherscan V2](https://docs.etherscan.io/) API key
 set (one key covers Basescan, Arbiscan, and Etherscan), deployment also
 verifies the contract source on the explorer.
 
+## Deployment record (Base mainnet)
+
+- **Network:** Base
+- **Chain ID:** 8453
+- **TSVGuard:** [`0x0A63F3Bf0d9d1bF7b395F924c9d5fd70efA61E87`](https://basescan.org/address/0x0A63F3Bf0d9d1bF7b395F924c9d5fd70efA61E87)
+- **Deploy tx:** [`0xee03cd52a1035944f03e229b7787b327460ea3b9b8c9f9c099451a237a2d1a39`](https://basescan.org/tx/0xee03cd52a1035944f03e229b7787b327460ea3b9b8c9f9c099451a237a2d1a39)
+- **Source verification:** [verified on Basescan](https://basescan.org/address/0x0A63F3Bf0d9d1bF7b395F924c9d5fd70efA61E87#code)
+- **Deployed from commit:** `e457bae457462c51b87cec0868c695af3a29e411`
+
+End-to-end halt rehearsal against this deployment (full terminal log:
+[`docs/e2e-simulation-base-mainnet.log`](docs/e2e-simulation-base-mainnet.log)):
+
+| Step                                            | Tx hash                                                              |
+| ----------------------------------------------- | -------------------------------------------------------------------- |
+| Pre-halt trade (succeeded)                      | `0x5f2888633d00b06e75df50adda89954ab33bba5e25da76603e3be2140d7c17fc` |
+| Mock LULD halt signal (`setStockHaltStatus`)    | `0xbbd81f87072fb690eb1c1fd21e6c555cded0b4e5d77cee706b8a0162ea6fdac5` |
+| Trade during halt (reverted on-chain, as mined) | `0x525b093f0ab0ae084db26093302ab32024a593a21bbf861af346d43aacad690e` |
+| Resume signal                                   | `0x91e4384f9bb20144f59a88fad74af079bb9d7318ad3063a08506b7cc5a737a22` |
+| Post-resume trade (succeeded)                   | `0xdb4f33d2358ff37427b3e93416e4299d66a74228648e468e4410f4736c74586e` |
+
+The rehearsal runs against a demo venue (`MockVenue`) with mock halt signals
+relayed by the project oracle; no live market data and no real securities
+are involved. See the disclaimer above.
+
 ## Deployment record (Base Sepolia)
 
 - **Network:** Base Sepolia
@@ -152,6 +178,7 @@ scripts/oracle.js               LULD listener relaying halt signals on-chain
 scripts/simulate.js             end-to-end halt simulation against a deployed guard
 test/TSVGuard.test.js           unit tests
 docs/e2e-simulation-base-sepolia.log  recorded e2e halt rehearsal on Base Sepolia
+docs/e2e-simulation-base-mainnet.log  recorded e2e halt rehearsal on Base mainnet
 docs/demo/index.html          wallet-driven live demo against the Base Sepolia deployment
 ```
 
