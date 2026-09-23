@@ -122,8 +122,10 @@ verifies the contract source on the explorer.
 ```
 contracts/TSVGuard.sol          core guard contract (AccessControl, dual stop flags)
 contracts/interfaces/ITSVGuard.sol  integration surface for AMMs / venues
+contracts/test/MockVenue.sol    demo venue honoring the guard, used by the e2e simulation
 scripts/deploy.js               cross-chain deploy + optional source verification
 scripts/oracle.js               LULD listener relaying halt signals on-chain
+scripts/simulate.js             end-to-end halt simulation against a deployed guard
 test/TSVGuard.test.js           unit tests
 ```
 
