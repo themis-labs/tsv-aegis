@@ -35,13 +35,23 @@ async function main() {
     return receipt;
   };
 
+  // Public RPC endpoints are load-balanced; an eth_call can hit a replica
+  // that has not seen the tx just mined. Poll until the state settles.
+  const waitForEnabled = async (expected) => {
+    for (let i = 0; i < 20; i++) {
+      const enabled = await guard.tradingEnabled();
+      if (enabled === expected) return;
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+    throw new Error(`tradingEnabled() did not settle to ${expected} within 60s`);
+  };
+
   await step('1. pre-halt trade (should succeed)', () => venue.trade(1000n));
 
   await step('2. mock LULD halt signal', () => guard.setStockHaltStatus(true));
 
-  const enabled = await guard.tradingEnabled();
-  console.log(`3. tradingEnabled() after halt: ${enabled}`);
-  if (enabled) throw new Error('guard still reports trading enabled');
+  await waitForEnabled(false);
+  console.log('3. tradingEnabled() after halt: false');
 
   // Explicit gasLimit skips pre-flight estimation, so the reverted trade is
   // actually mined — the rejected tx hash is the demo evidence on testnets.
@@ -57,6 +67,7 @@ async function main() {
 
   await step('5. resume signal', () => guard.setStockHaltStatus(false));
 
+  await waitForEnabled(true);
   await step('6. post-resume trade (should succeed)', () => venue.trade(2000n));
 
   console.log('End-to-end simulation complete.');
