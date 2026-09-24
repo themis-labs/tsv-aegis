@@ -15,7 +15,7 @@ inherit them with a single check.
 
 ## Demo
 
-VIDEO_URL
+https://github.com/user-attachments/assets/ef7eb391-beed-4f5f-bd0c-379aa8e2278d
 
 Fifty seconds on Base Sepolia: the oracle relays a mock LULD halt, the
 guard freezes the demo venue, and every trade reverts on-chain until the
