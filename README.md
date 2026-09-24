@@ -13,6 +13,15 @@ halt of the underlying NMS stock on its primary listing exchange, and
 This middleware puts both conditions on-chain so any AMM or venue can
 inherit them with a single check.
 
+## Demo
+
+VIDEO_URL
+
+Fifty seconds on Base Sepolia: the oracle relays a mock LULD halt, the
+guard freezes the demo venue, and every trade reverts on-chain until the
+halt clears. The same flow is live at
+[themis-labs.github.io/tsv-aegis/demo](https://themis-labs.github.io/tsv-aegis/demo/).
+
 ## Scope & disclaimer
 
 TSV Aegis is open-source developer tooling and a reference implementation.
