@@ -17,9 +17,10 @@ inherit them with a single check.
 
 **[Watch the walkthrough and try the live demo](https://themis-labs.github.io/tsv-aegis/demo/)**
 
-Fifty seconds on Base Sepolia: the oracle relays a mock LULD halt, the
-guard freezes the demo venue, and every trade reverts on-chain until the
-halt clears. The same flow can be driven by hand from the demo page.
+The walkthrough video runs fifty seconds: on Base Sepolia, the oracle
+relays a mock LULD halt, the guard freezes the demo venue, and every trade
+reverts on-chain until the halt clears. The same flow can be driven by hand
+from the demo page.
 
 ## Scope & disclaimer
 
