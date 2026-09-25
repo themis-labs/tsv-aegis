@@ -46,15 +46,18 @@ flowchart LR
     A["US market data<br/>Polygon.io (v1)<br/>Chainlink 24/5 Streams (v2)"] --> B["oracle.js<br/>relay node"]
     B -->|"setStockHaltStatus / recordVolume"| C["TSVGuard.sol"]
     C -->|"tradingEnabled()"| D["AMM pool / TSV venue"]
-    C -->|"status events"| E["ERC-8392-compatible<br/>status surface (planned)"]
+    C -->|"status events"| E["ERC-8392-compatible<br/>status surface"]
 ```
 
 The data-source side is pluggable: v1 relays Polygon.io LULD signals, v2
 adds a native Chainlink 24/5 U.S. Equities Streams adapter
 ([#4](https://github.com/themis-labs/tsv-aegis/issues/4)). The execution
-side will expose halt status through an ERC-8392-compatible interface so
-integrators read a standard enum instead of project-specific getters
-([#3](https://github.com/themis-labs/tsv-aegis/issues/3)).
+side exposes halt status through an ERC-8392 (draft)-compatible interface,
+so integrators read a standard enum instead of project-specific getters.
+Interruption state maps from the halt flag (`ASSET_HALTED` / `NONE`, and
+`UNKNOWN` before the first oracle push, so uninitialized state never reads
+as a healthy market); venue session state reports `UNKNOWN` until a
+calendar feed is wired in.
 
 Two independent stop conditions, two separate flags:
 
@@ -102,11 +105,10 @@ the guard's core decision.
 - **v1 (this repo)** — Polygon.io LULD relay, single `ORACLE_ROLE`,
   relay-recorded volume accounting. Goal: prove the two stop conditions
   on-chain with minimal surface.
-- **v2** — ERC-8392-compatible asset status surface
-  ([#3](https://github.com/themis-labs/tsv-aegis/issues/3)); Chainlink
-  24/5 U.S. Equities Streams as a native on-chain status source, removing
-  the single-relay trust assumption
-  ([#4](https://github.com/themis-labs/tsv-aegis/issues/4)).
+- **v2** — Chainlink 24/5 U.S. Equities Streams as a native on-chain
+  status source, removing the single-relay trust assumption
+  ([#4](https://github.com/themis-labs/tsv-aegis/issues/4)); venue session
+  reporting on the ERC-8392 surface.
 - **Production hardening** — stronger oracle consensus, halt-submission
   guarantees, and deeper integration points downstream of the guard.
 
