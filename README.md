@@ -71,12 +71,10 @@ with a permissionless `rollDay()` that Keepers-style automation can call.
 
 This repo is the v1 reference implementation. The oracle is a single relay
 key (`ORACLE_ROLE`), and volume accounting is recorded by the relay rather
-than intercepted inside the swap path. The production evolution (see Roadmap
-below) replaces these with: multi-source threshold signatures
-(2-of-3), private-mempool submission for halt transactions, Uniswap v4
-`beforeSwap` atomic interception, and ERC-3643 `canTransfer` coverage for
-off-venue transfers. Coverage is limited to pools and tokens that integrate
-the guard — liquidity elsewhere is out of scope by design.
+than intercepted inside the swap path. Both are deliberate simplifications
+for the demo; the production evolution (see Roadmap below) strengthens
+exactly these two assumptions. Coverage is limited to pools and tokens that
+integrate the guard — liquidity elsewhere is out of scope by design.
 
 Aegis also deliberately stays in one layer of the stack. It is a
 venue-facing, deterministic trading-permission check driven by external
@@ -109,10 +107,8 @@ the guard's core decision.
   24/5 U.S. Equities Streams as a native on-chain status source, removing
   the single-relay trust assumption
   ([#4](https://github.com/themis-labs/tsv-aegis/issues/4)).
-- **Production hardening** — multi-source threshold signatures (2-of-3),
-  private-mempool submission for halt transactions, Uniswap v4
-  `beforeSwap` atomic interception, ERC-3643 `canTransfer` coverage for
-  off-venue transfers.
+- **Production hardening** — stronger oracle consensus, halt-submission
+  guarantees, and deeper integration points downstream of the guard.
 
 Halt synchronization minimizes the cross-market arbitrage window; it does
 not promise zero-latency parity with the primary exchange — propagation

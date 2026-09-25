@@ -23,8 +23,8 @@ The following are documented design properties, not vulnerabilities:
 
 - **Single-relay trust assumption.** In v1 the oracle is one `ORACLE_ROLE`
   key. A compromised or malicious relay can halt or resume trading at
-  will. This is stated in the README and is replaced by multi-source
-  threshold signatures on the roadmap.
+  will. This is stated in the README and is addressed by stronger oracle
+  consensus on the roadmap.
 - **Relay-recorded volume accounting.** Volume is recorded by the relay
   rather than intercepted inside the swap path in v1.
 - **Deployment-specific operational security.** Private key management,
