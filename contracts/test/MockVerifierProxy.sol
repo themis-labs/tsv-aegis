@@ -7,10 +7,9 @@ pragma solidity ^0.8.20;
 ///         Chainlink's deployed contracts, so the mock skips straight to the
 ///         part the adapter is responsible for: decoding and mapping.
 contract MockVerifierProxy {
-    function verify(
-        bytes calldata payload,
-        bytes calldata
-    ) external payable returns (bytes memory) {
+    // Non-payable on purpose: the adapter never sends value, and a payable
+    // mock with no withdrawal path would lock any ether sent by mistake.
+    function verify(bytes calldata payload, bytes calldata) external returns (bytes memory) {
         (, bytes memory reportData) = abi.decode(payload, (bytes32[3], bytes));
         return reportData;
     }
