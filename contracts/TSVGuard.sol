@@ -2,6 +2,7 @@
 pragma solidity ^0.8.20;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {IAssetStatus, IReferenceMarketStatus} from "./interfaces/IERC8392.sol";
 
 /// @title TSVGuard
 /// @notice Compliance shield for tokenized NMS stock trading under the SEC
@@ -12,13 +13,23 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 ///         2. a per-day volume cap (0.25% / 2.5% of prior-month ADV by tier).
 ///         The two conditions use separate flags on purpose: a daily volume
 ///         rollover must never clear an active market halt.
-contract TSVGuard is AccessControl {
+/// @dev    Exposes the ERC-8392 (draft) asset status surface so integrators
+///         can read halt state through the standard interface instead of
+///         bespoke getters. Aegis is a venue-facing guard, not a token, so
+///         the surface covers the dimensions it can attest to: program
+///         status and reference-market interruption. Session state is
+///         reported as UNKNOWN until a venue calendar feed is wired in.
+contract TSVGuard is AccessControl, IAssetStatus, IReferenceMarketStatus {
     bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
 
     bool public marketHalted;
     uint256 public maxDailyCap;
     uint256 public currentDailyVolume;
     uint64 public currentDay; // UTC day index: block.timestamp / 1 days
+    /// @notice Last time the oracle pushed a halt/resume signal (0 = never).
+    uint64 public haltStatusUpdatedAt;
+
+    uint64 private immutable deployedAt;
 
     event HaltUpdated(bool halted, string reason);
     event MaxDailyCapUpdated(uint256 oldCap, uint256 newCap);
@@ -35,6 +46,7 @@ contract TSVGuard is AccessControl {
         _grantRole(ORACLE_ROLE, oracle);
         maxDailyCap = _maxDailyCap;
         currentDay = uint64(block.timestamp / 1 days);
+        deployedAt = uint64(block.timestamp);
     }
 
     /// @notice Daily total after lazy day rollover (no write required).
@@ -53,6 +65,7 @@ contract TSVGuard is AccessControl {
     /// @notice Relay a halt/resume signal from the underlying market.
     function setStockHaltStatus(bool isHalted) external onlyRole(ORACLE_ROLE) {
         marketHalted = isHalted;
+        haltStatusUpdatedAt = uint64(block.timestamp);
         emit HaltUpdated(
             isHalted,
             isHalted ? "Underlying NMS stock halted (LULD)" : "Underlying NMS stock resumed"
@@ -80,6 +93,59 @@ contract TSVGuard is AccessControl {
     ///         scheduled job. Trading state re-derives lazily either way.
     function rollDay() external {
         _rollDay();
+    }
+
+    /// @notice ERC-8392 (draft): program lifecycle and operational status.
+    ///         The guard program is ACTIVE/NORMAL from deployment; operational
+    ///         interventions (halts, caps) are reference-market or venue-level
+    ///         conditions, not program suspensions.
+    function assetStatus()
+        external
+        view
+        override
+        returns (
+            Lifecycle lifecycle,
+            ProgramStatus programStatus,
+            uint64 lifecycleAsOf,
+            uint64 programAsOf
+        )
+    {
+        return (Lifecycle.ACTIVE, ProgramStatus.NORMAL, deployedAt, deployedAt);
+    }
+
+    /// @notice ERC-8392 (draft): reference-market session and interruption.
+    ///         Interruption maps from the halt flag; before the first oracle
+    ///         push it reports UNKNOWN so uninitialized state never reads as
+    ///         a healthy market. Session is UNKNOWN until a venue calendar
+    ///         feed is integrated; guessing would be worse than 0.
+    function referenceMarketStatus()
+        external
+        view
+        override
+        returns (
+            Session session,
+            Interruption interruption,
+            uint64 sessionAsOf,
+            uint64 interruptionAsOf,
+            uint64 nextScheduledTransition,
+            bytes32 marketId
+        )
+    {
+        // Zero means the oracle has never pushed a status, so strict
+        // equality against 0 is exactly the condition we want.
+        // slither-disable-next-line incorrect-equality
+        interruption = haltStatusUpdatedAt == 0
+            ? Interruption.UNKNOWN
+            : (marketHalted ? Interruption.ASSET_HALTED : Interruption.NONE);
+        return (Session.UNKNOWN, interruption, 0, haltStatusUpdatedAt, 0, bytes32(0));
+    }
+
+    /// @notice ERC-165: advertise the ERC-8392 (draft) interfaces.
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
+        return
+            interfaceId == type(IAssetStatus).interfaceId ||
+            interfaceId == type(IReferenceMarketStatus).interfaceId ||
+            super.supportsInterface(interfaceId);
     }
 
     function _rollDay() internal {

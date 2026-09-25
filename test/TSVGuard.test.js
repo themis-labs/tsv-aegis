@@ -90,4 +90,44 @@ describe('TSVGuard', function () {
       'ZeroCap',
     );
   });
+
+  describe('ERC-8392 status surface', function () {
+    it('advertises the ERC-8392 interface IDs via ERC-165', async function () {
+      // IDs from the draft spec: each interface has exactly one function,
+      // so the interface ID equals that function's selector.
+      expect(await guard.supportsInterface('0xfecd6b9b')).to.equal(true); // IAssetStatus
+      expect(await guard.supportsInterface('0xfe1d1980')).to.equal(true); // IReferenceMarketStatus
+      expect(await guard.supportsInterface('0xffffffff')).to.equal(false);
+    });
+
+    it('reports ACTIVE/NORMAL program status from deployment', async function () {
+      const status = await guard.assetStatus();
+      expect(status.lifecycle).to.equal(2n); // ACTIVE
+      expect(status.programStatus).to.equal(1n); // NORMAL
+      expect(status.lifecycleAsOf).to.equal(await time.latest());
+      expect(status.programAsOf).to.equal(await time.latest());
+    });
+
+    it('reports UNKNOWN interruption before the first oracle push', async function () {
+      const status = await guard.referenceMarketStatus();
+      expect(status.session).to.equal(0n); // UNKNOWN
+      expect(status.interruption).to.equal(0n); // UNKNOWN, never reads as healthy
+      expect(status.sessionAsOf).to.equal(0n);
+      expect(status.interruptionAsOf).to.equal(0n);
+      expect(status.nextScheduledTransition).to.equal(0n);
+      expect(status.marketId).to.equal(ethers.ZeroHash);
+    });
+
+    it('maps halt/resume pushes to the standard interruption enum', async function () {
+      await guard.connect(oracle).setStockHaltStatus(true);
+      let status = await guard.referenceMarketStatus();
+      expect(status.interruption).to.equal(3n); // ASSET_HALTED
+      expect(status.interruptionAsOf).to.equal(await time.latest());
+
+      await guard.connect(oracle).setStockHaltStatus(false);
+      status = await guard.referenceMarketStatus();
+      expect(status.interruption).to.equal(1n); // NONE
+      expect(status.interruptionAsOf).to.equal(await time.latest());
+    });
+  });
 });
