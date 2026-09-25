@@ -43,16 +43,18 @@ neither must be used to facilitate live securities trading.
 
 ```mermaid
 flowchart LR
-    A["US market data<br/>Polygon.io (v1)<br/>Chainlink 24/5 Streams (v2)"] --> B["oracle.js<br/>relay node"]
+    A["US market data<br/>Polygon.io"] --> B["oracle.js<br/>relay node"]
+    F["Chainlink 24/5<br/>U.S. Equities Streams"] --> G["ChainlinkStreamsAdapter.sol<br/>VerifierProxy-verified"]
     B -->|"setStockHaltStatus / recordVolume"| C["TSVGuard.sol"]
+    G -->|"setStockHaltStatus"| C
     C -->|"tradingEnabled()"| D["AMM pool / TSV venue"]
     C -->|"status events"| E["ERC-8392-compatible<br/>status surface"]
 ```
 
-The data-source side is pluggable: v1 relays Polygon.io LULD signals, v2
-adds a native Chainlink 24/5 U.S. Equities Streams adapter
-([#4](https://github.com/themis-labs/tsv-aegis/issues/4)). The execution
-side exposes halt status through an ERC-8392 (draft)-compatible interface,
+The data-source side is pluggable: the reference relay pushes Polygon.io
+LULD signals, and `contracts/adapters/ChainlinkStreamsAdapter.sol` consumes
+Chainlink 24/5 U.S. Equities Streams reports verified on-chain through the
+network's VerifierProxy. The execution side exposes halt status through an ERC-8392 (draft)-compatible interface,
 so integrators read a standard enum instead of project-specific getters.
 Interruption state maps from the halt flag (`ASSET_HALTED` / `NONE`, and
 `UNKNOWN` before the first oracle push, so uninitialized state never reads
@@ -105,10 +107,8 @@ the guard's core decision.
 - **v1 (this repo)** — Polygon.io LULD relay, single `ORACLE_ROLE`,
   relay-recorded volume accounting. Goal: prove the two stop conditions
   on-chain with minimal surface.
-- **v2** — Chainlink 24/5 U.S. Equities Streams as a native on-chain
-  status source, removing the single-relay trust assumption
-  ([#4](https://github.com/themis-labs/tsv-aegis/issues/4)); venue session
-  reporting on the ERC-8392 surface.
+- **v2** — venue session reporting on the ERC-8392 surface; wiring the
+  Chainlink streams adapter to a subscribed production feed.
 - **Production hardening** — stronger oracle consensus, halt-submission
   guarantees, and deeper integration points downstream of the guard.
 
@@ -121,9 +121,23 @@ and block times always apply.
 `oracle.js` subscribes to Polygon.io's stocks WebSocket (`LULD.<ticker>`).
 That channel requires a plan that includes it; without the entitlement,
 fall back to polling SIP market status over REST and call the same
-`setStockHaltStatus` interface. The v2 Chainlink adapter consumes the
-24/5 equities streams' market-status field instead, which removes the
-polling trust assumption entirely.
+`setStockHaltStatus` interface.
+
+The Chainlink path involves no relay key. `ChainlinkStreamsAdapter` takes
+a signed 24/5 equities report (RWA Advanced, schema v11), verifies it
+through the chain's VerifierProxy, and maps it onto the same
+`setStockHaltStatus` interface. Live sessions (pre-market, regular,
+post-market, overnight) with a fresh consensus mid read as
+trading-enabled; Unknown, Closed, unmapped statuses, a stale mid, or a
+non-positive mid all read as halted. Chainlink does not flag LULD halts in
+`marketStatus` — a halted venue simply stops publishing — so the staleness
+budget (`maxStaleness`, set per deployment) is what turns a quiet feed
+into a halt. VerifierProxy on Base mainnet:
+`0xDE1A28D87Afd0f546505B28AB50410A5c3a7387a`; on Base Sepolia:
+`0x8Ac491b7c118a0cdcF048e0f707247fD8C9575f9`. The adapter ships with unit
+tests against simulated reports; wiring it to a live instrument requires
+the deployer's own Data Streams subscription and that instrument's v11
+feed ID.
 
 ## Quick start (Base Sepolia)
 
@@ -202,12 +216,16 @@ above.
 
 ```
 contracts/TSVGuard.sol          core guard contract (AccessControl, dual stop flags)
+contracts/adapters/ChainlinkStreamsAdapter.sol  Chainlink 24/5 streams to halt-state adapter
 contracts/interfaces/ITSVGuard.sol  integration surface for AMMs / venues
+contracts/interfaces/IVerifierProxy.sol  Chainlink Data Streams on-chain verification entry point
 contracts/test/MockVenue.sol    demo venue honoring the guard, used by the e2e simulation
+contracts/test/MockVerifierProxy.sol  pass-through verifier used by the adapter unit tests
 scripts/deploy.js               cross-chain deploy + optional source verification
 scripts/oracle.js               LULD listener relaying halt signals on-chain
 scripts/simulate.js             end-to-end halt simulation against a deployed guard
 test/TSVGuard.test.js           unit tests
+test/ChainlinkStreamsAdapter.test.js  adapter unit tests
 docs/e2e-simulation-base-sepolia.log  recorded e2e halt rehearsal on Base Sepolia
 docs/e2e-simulation-base-mainnet.log  recorded e2e halt rehearsal on Base mainnet
 docs/demo/index.html          wallet-driven live demo against the Base Sepolia deployment
@@ -215,11 +233,11 @@ docs/demo/index.html          wallet-driven live demo against the Base Sepolia d
 
 ## Compliance mapping
 
-| Exemption condition                                     | On-chain mechanism                                                                 |
-| ------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| Concurrent stoppage with underlying NMS stock           | `setStockHaltStatus` relayed from LULD feed, gate via `tradingEnabled()`           |
-| Volume limits (0.25% / 2.5% of prior-month ADV by tier) | `recordVolume` + `maxDailyCap`, per-UTC-day tally, cap update via `setMaxDailyCap` |
-| Auditable, public contracts on a permissionless ledger  | MIT-licensed source, verified on explorer, deployed to public testnets/mainnets    |
+| Exemption condition                                     | On-chain mechanism                                                                                                  |
+| ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Concurrent stoppage with underlying NMS stock           | `setStockHaltStatus` from the LULD relay or the VerifierProxy-verified streams adapter, gate via `tradingEnabled()` |
+| Volume limits (0.25% / 2.5% of prior-month ADV by tier) | `recordVolume` + `maxDailyCap`, per-UTC-day tally, cap update via `setMaxDailyCap`                                  |
+| Auditable, public contracts on a permissionless ledger  | MIT-licensed source, verified on explorer, deployed to public testnets/mainnets                                     |
 
 Regulatory references: SEC press release 2026-90 and the underlying order
 (2026-09-17). The exemption is open for public comment; conditions may be
