@@ -89,6 +89,13 @@ Those are real problems, but they belong to other components. Staying in
 one layer is what keeps the integration surface at a single
 `tradingEnabled()` call.
 
+The check is driven by reference-market status, not DEX price deviation —
+a halted asset stays untradeable regardless of what on-chain prices do.
+Every stop carries an auditable reason string in the `HaltUpdated` event.
+Price-integrity and oracle-freshness signals may be layered on by venues
+as optional policy modules; they are inputs to venue policy, not part of
+the guard's core decision.
+
 ## Roadmap
 
 - **v1 (this repo)** — Polygon.io LULD relay, single `ORACLE_ROLE`,
