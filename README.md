@@ -22,6 +22,9 @@ relays a mock LULD halt, the guard freezes the demo venue, and every trade
 reverts on-chain until the halt clears. The same flow can be driven by hand
 from the demo page.
 
+Every transaction shown in the walkthrough is listed with its hash in the
+deployment records below.
+
 ## Scope & disclaimer
 
 TSV Aegis is open-source developer tooling and a reference implementation.
@@ -88,6 +91,13 @@ market status and configurable venue rules. It is not:
 Those are real problems, but they belong to other components. Staying in
 one layer is what keeps the integration surface at a single
 `tradingEnabled()` call.
+
+The check is driven by reference-market status, not DEX price deviation —
+a halted asset stays untradeable regardless of what on-chain prices do.
+Every stop carries an auditable reason string in the `HaltUpdated` event.
+Price-integrity and oracle-freshness signals may be layered on by venues
+as optional policy modules; they are inputs to venue policy, not part of
+the guard's core decision.
 
 ## Roadmap
 
