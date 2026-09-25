@@ -43,13 +43,13 @@ flowchart LR
     A["US market data<br/>Polygon.io (v1)<br/>Chainlink 24/5 Streams (v2)"] --> B["oracle.js<br/>relay node"]
     B -->|"setStockHaltStatus / recordVolume"| C["TSVGuard.sol"]
     C -->|"tradingEnabled()"| D["AMM pool / TSV venue"]
-    C -->|"status events"| E["ERC-8391-compatible<br/>status surface (planned)"]
+    C -->|"status events"| E["ERC-8392-compatible<br/>status surface (planned)"]
 ```
 
 The data-source side is pluggable: v1 relays Polygon.io LULD signals, v2
 adds a native Chainlink 24/5 U.S. Equities Streams adapter
 ([#4](https://github.com/themis-labs/tsv-aegis/issues/4)). The execution
-side will expose halt status through an ERC-8391-compatible interface so
+side will expose halt status through an ERC-8392-compatible interface so
 integrators read a standard enum instead of project-specific getters
 ([#3](https://github.com/themis-labs/tsv-aegis/issues/3)).
 
@@ -75,12 +75,26 @@ below) replaces these with: multi-source threshold signatures
 off-venue transfers. Coverage is limited to pools and tokens that integrate
 the guard — liquidity elsewhere is out of scope by design.
 
+Aegis also deliberately stays in one layer of the stack. It is a
+venue-facing, deterministic trading-permission check driven by external
+market status and configurable venue rules. It is not:
+
+- a corporate-actions engine — dividends, splits, entitlement distribution
+- an asset-administration system — delisting lifecycle, redemption
+  workflows
+- a discretionary, governance-controlled pause mechanism
+- an LP risk-scoring or AMM pricing-protection layer
+
+Those are real problems, but they belong to other components. Staying in
+one layer is what keeps the integration surface at a single
+`tradingEnabled()` call.
+
 ## Roadmap
 
 - **v1 (this repo)** — Polygon.io LULD relay, single `ORACLE_ROLE`,
   relay-recorded volume accounting. Goal: prove the two stop conditions
   on-chain with minimal surface.
-- **v2** — ERC-8391-compatible asset status surface
+- **v2** — ERC-8392-compatible asset status surface
   ([#3](https://github.com/themis-labs/tsv-aegis/issues/3)); Chainlink
   24/5 U.S. Equities Streams as a native on-chain status source, removing
   the single-relay trust assumption
