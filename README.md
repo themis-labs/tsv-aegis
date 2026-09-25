@@ -22,6 +22,9 @@ relays a mock LULD halt, the guard freezes the demo venue, and every trade
 reverts on-chain until the halt clears. The same flow can be driven by hand
 from the demo page.
 
+Every transaction shown in the walkthrough is listed with its hash in the
+deployment records below.
+
 ## Scope & disclaimer
 
 TSV Aegis is open-source developer tooling and a reference implementation.
