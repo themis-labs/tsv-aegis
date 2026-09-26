@@ -45,6 +45,7 @@ neither must be used to facilitate live securities trading.
 flowchart LR
     A["US market data<br/>Polygon.io"] --> B["oracle.js<br/>relay node"]
     F["Chainlink 24/5<br/>U.S. Equities Streams"] --> G["ChainlinkStreamsAdapter.sol<br/>VerifierProxy-verified"]
+    H["US session clock<br/>session.js"] -->|"setMarketSession"| C
     B -->|"setStockHaltStatus / recordVolume"| C["TSVGuard.sol"]
     G -->|"setStockHaltStatus"| C
     C -->|"tradingEnabled()"| D["AMM pool / TSV venue"]
@@ -54,12 +55,17 @@ flowchart LR
 The data-source side is pluggable: the reference relay pushes Polygon.io
 LULD signals, and `contracts/adapters/ChainlinkStreamsAdapter.sol` consumes
 Chainlink 24/5 U.S. Equities Streams reports verified on-chain through the
-network's VerifierProxy. The execution side exposes halt status through an ERC-8392 (draft)-compatible interface,
-so integrators read a standard enum instead of project-specific getters.
+network's VerifierProxy. A second relay, `scripts/session.js`, reports the
+reference market's scheduled session (pre-market / regular / post-market /
+closed, in America/New_York wall time) from the venue calendar clock.
+The execution side exposes halt and session status through an ERC-8392
+(draft)-compatible interface, so integrators read standard enums instead of
+project-specific getters.
 Interruption state maps from the halt flag (`ASSET_HALTED` / `NONE`, and
 `UNKNOWN` before the first oracle push, so uninitialized state never reads
-as a healthy market); venue session state reports `UNKNOWN` until a
-calendar feed is wired in.
+as a healthy market); session state likewise reports `UNKNOWN` until the
+first push from the session relay. Session reporting is informational for
+ERC-8392 consumers — it never gates `tradingEnabled()`.
 
 Two independent stop conditions, two separate flags:
 
@@ -107,8 +113,9 @@ the guard's core decision.
 - **v1 (this repo)** — Polygon.io LULD relay, single `ORACLE_ROLE`,
   relay-recorded volume accounting. Goal: prove the two stop conditions
   on-chain with minimal surface.
-- **v2** — venue session reporting on the ERC-8392 surface; wiring the
-  Chainlink streams adapter to a subscribed production feed.
+- **v2** — wiring the Chainlink streams adapter to a subscribed production
+  feed. (Venue session reporting on the ERC-8392 surface shipped in
+  `scripts/session.js` + `setMarketSession`.)
 - **Production hardening** — stronger oracle consensus, halt-submission
   guarantees, and deeper integration points downstream of the guard.
 
@@ -122,6 +129,14 @@ and block times always apply.
 That channel requires a plan that includes it; without the entitlement,
 fall back to polling SIP market status over REST and call the same
 `setStockHaltStatus` interface.
+
+`session.js` derives the reference market's session purely from the venue
+clock: weekday 04:00–09:30 ET is pre-market, 09:30–16:00 is the regular
+session, 16:00–20:00 is post-market, everything else (including weekends)
+is closed. Exchange holidays and early closes are not encoded — wire an
+official trading calendar before relying on session state outside the demo.
+The reference market's MIC is set once by the admin via `setMarketId`
+(e.g. `ethers.encodeBytes32String('XNYS')`).
 
 The Chainlink path involves no relay key. `ChainlinkStreamsAdapter` takes
 a signed 24/5 equities report (RWA Advanced, schema v11), verifies it
@@ -153,7 +168,8 @@ npm test               # unit tests: halt/resume, cap breach, day rollover, ACL
 
 npm run deploy:base-sepolia
 # paste the deployed address into .env as GUARD_ADDRESS, then:
-npm run start:oracle
+npm run start:oracle    # halt/volume relay
+npm run start:session   # venue session clock (ERC-8392 session reporting)
 ```
 
 For mainnet, use `npm run deploy:base` with `BASE_RPC` and a funded deployer
@@ -217,12 +233,14 @@ above.
 ```
 contracts/TSVGuard.sol          core guard contract (AccessControl, dual stop flags)
 contracts/adapters/ChainlinkStreamsAdapter.sol  Chainlink 24/5 streams to halt-state adapter
+contracts/interfaces/IERC8392.sol  ERC-8392 (draft) asset status interfaces
 contracts/interfaces/ITSVGuard.sol  integration surface for AMMs / venues
 contracts/interfaces/IVerifierProxy.sol  Chainlink Data Streams on-chain verification entry point
 contracts/test/MockVenue.sol    demo venue honoring the guard, used by the e2e simulation
 contracts/test/MockVerifierProxy.sol  pass-through verifier used by the adapter unit tests
 scripts/deploy.js               cross-chain deploy + optional source verification
 scripts/oracle.js               LULD listener relaying halt signals on-chain
+scripts/session.js              venue session clock reporting on the ERC-8392 surface
 scripts/simulate.js             end-to-end halt simulation against a deployed guard
 test/TSVGuard.test.js           unit tests
 test/ChainlinkStreamsAdapter.test.js  adapter unit tests

@@ -17,8 +17,9 @@ import {IAssetStatus, IReferenceMarketStatus} from "./interfaces/IERC8392.sol";
 ///         can read halt state through the standard interface instead of
 ///         bespoke getters. Aegis is a venue-facing guard, not a token, so
 ///         the surface covers the dimensions it can attest to: program
-///         status and reference-market interruption. Session state is
-///         reported as UNKNOWN until a venue calendar feed is wired in.
+///         status, reference-market interruption, and reference-market
+///         session. Session state is relayed by the oracle's session clock
+///         and is informational only — it never gates tradingEnabled().
 contract TSVGuard is AccessControl, IAssetStatus, IReferenceMarketStatus {
     bytes32 public constant ORACLE_ROLE = keccak256("ORACLE_ROLE");
 
@@ -28,6 +29,14 @@ contract TSVGuard is AccessControl, IAssetStatus, IReferenceMarketStatus {
     uint64 public currentDay; // UTC day index: block.timestamp / 1 days
     /// @notice Last time the oracle pushed a halt/resume signal (0 = never).
     uint64 public haltStatusUpdatedAt;
+    /// @notice Reference-market session as last reported by the oracle.
+    ///         Informational for ERC-8392 consumers; never gates trading.
+    Session public marketSession;
+    uint64 public sessionUpdatedAt;
+    uint64 public nextSessionTransition;
+    /// @notice ISO 10383 MIC of the reference market, uppercase ASCII
+    ///         right-padded with zero bytes (bytes32(0) = not configured).
+    bytes32 public referenceMarketId;
 
     uint64 private immutable deployedAt;
 
@@ -35,9 +44,12 @@ contract TSVGuard is AccessControl, IAssetStatus, IReferenceMarketStatus {
     event MaxDailyCapUpdated(uint256 oldCap, uint256 newCap);
     event VolumeRecorded(uint64 indexed day, uint256 added, uint256 dailyTotal);
     event CapBreached(uint64 indexed day, uint256 dailyTotal, uint256 maxDailyCap);
+    event SessionUpdated(Session session, uint64 nextScheduledTransition);
+    event MarketIdUpdated(bytes32 marketId);
 
     error ZeroAddress();
     error ZeroCap();
+    error InvalidSession(uint8 session);
 
     constructor(address oracle, uint256 _maxDailyCap) {
         if (oracle == address(0)) revert ZeroAddress();
@@ -70,6 +82,25 @@ contract TSVGuard is AccessControl, IAssetStatus, IReferenceMarketStatus {
             isHalted,
             isHalted ? "Underlying NMS stock halted (LULD)" : "Underlying NMS stock resumed"
         );
+    }
+
+    /// @notice Report the reference market's current session and the next
+    ///         scheduled session transition. Informational only: session
+    ///         state never gates tradingEnabled() — whether pre/post-market
+    ///         trading is allowed is the venue's own policy decision.
+    function setMarketSession(uint8 session, uint64 nextTransition) external onlyRole(ORACLE_ROLE) {
+        if (session > uint8(Session.CLOSED)) revert InvalidSession(session);
+        marketSession = Session(session);
+        sessionUpdatedAt = uint64(block.timestamp);
+        nextSessionTransition = nextTransition;
+        emit SessionUpdated(Session(session), nextTransition);
+    }
+
+    /// @notice Set the reference market's MIC (e.g. "XNYS" for NYSE), as
+    ///         uppercase ASCII right-padded with zero bytes.
+    function setMarketId(bytes32 newMarketId) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        referenceMarketId = newMarketId;
+        emit MarketIdUpdated(newMarketId);
     }
 
     /// @notice Update the daily volume cap (e.g. monthly ADV recalibration).
@@ -116,8 +147,10 @@ contract TSVGuard is AccessControl, IAssetStatus, IReferenceMarketStatus {
     /// @notice ERC-8392 (draft): reference-market session and interruption.
     ///         Interruption maps from the halt flag; before the first oracle
     ///         push it reports UNKNOWN so uninitialized state never reads as
-    ///         a healthy market. Session is UNKNOWN until a venue calendar
-    ///         feed is integrated; guessing would be worse than 0.
+    ///         a healthy market. Session comes from the oracle's session
+    ///         clock (scripts/session.js) and likewise reports UNKNOWN until
+    ///         the first push. Session reporting is informational — it does
+    ///         not gate tradingEnabled().
     function referenceMarketStatus()
         external
         view
@@ -137,7 +170,14 @@ contract TSVGuard is AccessControl, IAssetStatus, IReferenceMarketStatus {
         interruption = haltStatusUpdatedAt == 0
             ? Interruption.UNKNOWN
             : (marketHalted ? Interruption.ASSET_HALTED : Interruption.NONE);
-        return (Session.UNKNOWN, interruption, 0, haltStatusUpdatedAt, 0, bytes32(0));
+        return (
+            marketSession,
+            interruption,
+            sessionUpdatedAt,
+            haltStatusUpdatedAt,
+            nextSessionTransition,
+            referenceMarketId
+        );
     }
 
     /// @notice ERC-165: advertise the ERC-8392 (draft) interfaces.
