@@ -11,6 +11,7 @@
     "deploy:base-sepolia": "hardhat run scripts/deploy.js --network baseSepolia",
     "deploy:arbitrum-sepolia": "hardhat run scripts/deploy.js --network arbitrumSepolia",
     "start:oracle": "node scripts/oracle.js",
+    "start:session": "node scripts/session.js",
     "simulate": "hardhat run scripts/simulate.js"
   },
   "keywords": [

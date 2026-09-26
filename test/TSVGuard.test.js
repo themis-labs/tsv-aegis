@@ -129,5 +129,54 @@ describe('TSVGuard', function () {
       expect(status.interruption).to.equal(1n); // NONE
       expect(status.interruptionAsOf).to.equal(await time.latest());
     });
+
+    it('reports the session relayed by the oracle', async function () {
+      const next = (await time.latest()) + 3600;
+      await expect(guard.connect(oracle).setMarketSession(1, next)) // REGULAR
+        .to.emit(guard, 'SessionUpdated')
+        .withArgs(1, next);
+
+      const status = await guard.referenceMarketStatus();
+      expect(status.session).to.equal(1n); // REGULAR
+      expect(status.sessionAsOf).to.equal(await time.latest());
+      expect(status.nextScheduledTransition).to.equal(next);
+    });
+
+    it('rejects invalid session values and non-oracle callers', async function () {
+      await expect(guard.connect(oracle).setMarketSession(5, 0)).to.be.revertedWithCustomError(
+        guard,
+        'InvalidSession',
+      );
+      await expect(guard.connect(stranger).setMarketSession(1, 0))
+        .to.be.revertedWithCustomError(guard, 'AccessControlUnauthorizedAccount')
+        .withArgs(stranger.address, await guard.ORACLE_ROLE());
+    });
+
+    it('keeps session reporting orthogonal to halts and tradingEnabled', async function () {
+      await guard.connect(oracle).setMarketSession(4, 0); // CLOSED
+      // A closed session is informational: it must not gate trading.
+      expect(await guard.tradingEnabled()).to.equal(true);
+
+      await guard.connect(oracle).setStockHaltStatus(true);
+      const status = await guard.referenceMarketStatus();
+      expect(status.session).to.equal(4n); // CLOSED survives the halt push
+      expect(status.interruption).to.equal(3n); // ASSET_HALTED
+      expect(await guard.tradingEnabled()).to.equal(false);
+    });
+
+    it('lets the admin set the reference market MIC', async function () {
+      const XNYS = ethers.encodeBytes32String('XNYS');
+      await expect(guard.connect(admin).setMarketId(XNYS))
+        .to.emit(guard, 'MarketIdUpdated')
+        .withArgs(XNYS);
+
+      const status = await guard.referenceMarketStatus();
+      expect(status.marketId).to.equal(XNYS);
+
+      await expect(guard.connect(oracle).setMarketId(XNYS)).to.be.revertedWithCustomError(
+        guard,
+        'AccessControlUnauthorizedAccount',
+      );
+    });
   });
 });
