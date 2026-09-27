@@ -116,10 +116,11 @@ the guard's core decision.
 - **v0.2 (this release)** — ERC-8392 status surface, Chainlink streams
   adapter (mock-verified), and venue session reporting via
   `scripts/session.js` + `setMarketSession`.
-- **v1.0** — wiring the Chainlink streams adapter to a subscribed
+- **v0.3** — wiring the Chainlink streams adapter to a subscribed
   production feed.
-- **Production hardening** — stronger oracle consensus, halt-submission
-  guarantees, and deeper integration points downstream of the guard.
+- **v1.0** — production hardening: stronger oracle consensus,
+  halt-submission guarantees, and deeper integration points downstream of
+  the guard.
 
 Halt synchronization minimizes the cross-market arbitrage window; it does
 not promise zero-latency parity with the primary exchange — propagation
