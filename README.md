@@ -110,12 +110,14 @@ the guard's core decision.
 
 ## Roadmap
 
-- **v1 (this repo)** — Polygon.io LULD relay, single `ORACLE_ROLE`,
-  relay-recorded volume accounting. Goal: prove the two stop conditions
-  on-chain with minimal surface.
-- **v2** — wiring the Chainlink streams adapter to a subscribed production
-  feed. (Venue session reporting on the ERC-8392 surface shipped in
-  `scripts/session.js` + `setMarketSession`.)
+- **v0.1** — Polygon.io LULD relay, single `ORACLE_ROLE`, relay-recorded
+  volume accounting. Goal: prove the two stop conditions on-chain with
+  minimal surface. (The recorded Base deployments run this contract.)
+- **v0.2 (this release)** — ERC-8392 status surface, Chainlink streams
+  adapter (mock-verified), and venue session reporting via
+  `scripts/session.js` + `setMarketSession`.
+- **v1.0** — wiring the Chainlink streams adapter to a subscribed
+  production feed.
 - **Production hardening** — stronger oracle consensus, halt-submission
   guarantees, and deeper integration points downstream of the guard.
 
