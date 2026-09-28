@@ -260,6 +260,8 @@ above.
 ```
 contracts/TSVGuard.sol          core guard contract (AccessControl, dual stop flags)
 contracts/adapters/ChainlinkStreamsAdapter.sol  Chainlink 24/5 streams to halt-state adapter
+contracts/examples/UniV4GuardedHook.sol  Uniswap v4 hook example gating beforeSwap on the guard
+contracts/examples/interfaces/IV4TypesMinimal.sol  minimal v4-core type subset used by the hook example
 contracts/interfaces/IERC8392.sol  ERC-8392 (draft) asset status interfaces
 contracts/interfaces/ITSVGuard.sol  integration surface for AMMs / venues
 contracts/interfaces/IVerifierProxy.sol  Chainlink Data Streams on-chain verification entry point
@@ -271,6 +273,7 @@ scripts/session.js              venue session clock reporting on the ERC-8392 su
 scripts/simulate.js             end-to-end halt simulation against a deployed guard
 test/TSVGuard.test.js           unit tests
 test/ChainlinkStreamsAdapter.test.js  adapter unit tests
+test/UniV4GuardedHook.test.js   hook example unit tests
 docs/e2e-simulation-base-sepolia.log  recorded e2e halt rehearsal on Base Sepolia
 docs/e2e-simulation-base-mainnet.log  recorded e2e halt rehearsal on Base mainnet
 docs/e2e-simulation-arbitrum-sepolia.log  recorded e2e halt rehearsal on Arbitrum Sepolia
