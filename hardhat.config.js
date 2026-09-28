@@ -30,4 +30,7 @@ module.exports = {
     // Etherscan V2 unified API: one key covers Etherscan, Basescan, Arbiscan.
     apiKey: process.env.ETHERSCAN_API_KEY || '',
   },
+  sourcify: {
+    enabled: true,
+  },
 };
