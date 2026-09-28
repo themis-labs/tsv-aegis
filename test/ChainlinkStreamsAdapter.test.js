@@ -29,6 +29,13 @@ const REPORT_TYPES = [
   'uint32',
 ];
 
+function wrapPayload(reportData) {
+  return abiCoder.encode(
+    ['bytes32[3]', 'bytes', 'bytes32[]', 'bytes32[]', 'bytes32'],
+    [[ethers.ZeroHash, ethers.ZeroHash, ethers.ZeroHash], reportData, [], [], ethers.ZeroHash],
+  );
+}
+
 function buildPayload({ feedId = FEED_ID, mid = 25_000n, lastSeenNs = 0n, marketStatus = 2 }) {
   const reportData = abiCoder.encode(REPORT_TYPES, [
     feedId,
@@ -46,10 +53,7 @@ function buildPayload({ feedId = FEED_ID, mid = 25_000n, lastSeenNs = 0n, market
     0n,
     marketStatus,
   ]);
-  return abiCoder.encode(
-    ['bytes32[3]', 'bytes', 'bytes32[]', 'bytes32[]', 'bytes32'],
-    [[ethers.ZeroHash, ethers.ZeroHash, ethers.ZeroHash], reportData, [], [], ethers.ZeroHash],
-  );
+  return wrapPayload(reportData);
 }
 
 describe('ChainlinkStreamsAdapter', function () {
@@ -191,5 +195,132 @@ describe('ChainlinkStreamsAdapter', function () {
       .connect(stranger)
       .updateFromReport(buildPayload({ lastSeenNs: await freshNs(), marketStatus: 2 }));
     expect(await guard.tradingEnabled()).to.equal(true);
+  });
+
+  describe('failure modes', function () {
+    it('reverts on an empty payload', async function () {
+      await expect(adapter.updateFromReport('0x')).to.be.reverted;
+      expect(await adapter.lastAppliedAt()).to.equal(0);
+    });
+
+    it('reverts on a truncated payload', async function () {
+      const payload = buildPayload({ lastSeenNs: await freshNs() });
+      await expect(adapter.updateFromReport(payload.slice(0, 100))).to.be.reverted;
+    });
+
+    it('reverts on a report body too short to carry the version prefix', async function () {
+      // One byte is not enough to read the two-byte schema version, so the
+      // version check panics before the verifier is ever called.
+      await expect(adapter.updateFromReport(wrapPayload('0x00'))).to.be.revertedWithPanic(0x32);
+    });
+
+    it('reverts when the verified body is too short to decode a v11 report', async function () {
+      // Starts with the v11 prefix so the version check passes, then the
+      // struct decode runs out of data.
+      const stub = abiCoder.encode(['bytes32', 'uint32'], [FEED_ID, 0]);
+      await expect(adapter.updateFromReport(wrapPayload(stub))).to.be.reverted;
+    });
+
+    it('propagates a verifier revert', async function () {
+      // The guard contract has no verify() entrypoint and no fallback, so
+      // the call reverts and the adapter must let it bubble up.
+      const ChainlinkStreamsAdapter = await ethers.getContractFactory('ChainlinkStreamsAdapter');
+      const broken = await ChainlinkStreamsAdapter.deploy(
+        await guard.getAddress(),
+        await guard.getAddress(),
+        FEED_ID,
+        MAX_STALENESS,
+      );
+      await expect(broken.updateFromReport(buildPayload({ lastSeenNs: await freshNs() }))).to.be
+        .reverted;
+    });
+
+    it('reverts when the verifier returns undecodable data', async function () {
+      // An EOA standing in for the verifier answers the call with empty
+      // returndata, which fails the report decode.
+      const ChainlinkStreamsAdapter = await ethers.getContractFactory('ChainlinkStreamsAdapter');
+      const miswired = await ChainlinkStreamsAdapter.deploy(
+        stranger.address,
+        await guard.getAddress(),
+        FEED_ID,
+        MAX_STALENESS,
+      );
+      await expect(miswired.updateFromReport(buildPayload({ lastSeenNs: await freshNs() }))).to.be
+        .reverted;
+    });
+
+    it('reverts the update when the adapter lacks ORACLE_ROLE on the guard', async function () {
+      const ChainlinkStreamsAdapter = await ethers.getContractFactory('ChainlinkStreamsAdapter');
+      const unauthorized = await ChainlinkStreamsAdapter.deploy(
+        await verifier.getAddress(),
+        await guard.getAddress(),
+        FEED_ID,
+        MAX_STALENESS,
+      );
+      const oracleRole = await guard.ORACLE_ROLE();
+      await expect(unauthorized.updateFromReport(buildPayload({ lastSeenNs: await freshNs() })))
+        .to.be.revertedWithCustomError(guard, 'AccessControlUnauthorizedAccount')
+        .withArgs(await unauthorized.getAddress(), oracleRole);
+      // The guard must not latch any state from a report it never accepted.
+      expect(await guard.haltStatusUpdatedAt()).to.equal(0);
+    });
+
+    it('reverts updates after ORACLE_ROLE is revoked', async function () {
+      await adapter.updateFromReport(
+        buildPayload({ lastSeenNs: await freshNs(), marketStatus: 2 }),
+      );
+      expect(await guard.tradingEnabled()).to.equal(true);
+
+      await guard.connect(admin).revokeRole(await guard.ORACLE_ROLE(), await adapter.getAddress());
+      await expect(
+        adapter.updateFromReport(buildPayload({ lastSeenNs: await freshNs(), marketStatus: 2 })),
+      ).to.be.revertedWithCustomError(guard, 'AccessControlUnauthorizedAccount');
+      expect(await guard.tradingEnabled()).to.equal(true);
+    });
+
+    it('keeps the halt in place when a follow-up malformed report reverts', async function () {
+      await adapter.updateFromReport(
+        buildPayload({ lastSeenNs: await freshNs(), marketStatus: 5 }),
+      );
+      expect(await guard.tradingEnabled()).to.equal(false);
+
+      await expect(adapter.updateFromReport('0x')).to.be.reverted;
+      await expect(
+        adapter.updateFromReport(buildPayload({ feedId: WRONG_FEED_ID })),
+      ).to.be.revertedWithCustomError(adapter, 'UnknownFeed');
+      expect(await guard.tradingEnabled()).to.equal(false);
+      expect(await adapter.lastMarketStatus()).to.equal(5);
+    });
+
+    it('halts on a zero last-seen timestamp even in a live session', async function () {
+      // A report that has never observed a trade must not read as a healthy
+      // market: lastSeenTimestampNs of 0 is as stale as it gets.
+      await adapter.updateFromReport(buildPayload({ lastSeenNs: 0n, marketStatus: 2 }));
+      expect(await guard.tradingEnabled()).to.equal(false);
+    });
+
+    it('halts on the highest unmapped market status value', async function () {
+      await adapter.updateFromReport(
+        buildPayload({ lastSeenNs: await freshNs(), marketStatus: 4_294_967_295 }),
+      );
+      expect(await guard.tradingEnabled()).to.equal(false);
+    });
+
+    it('flags the halt in ReportApplied for degraded reports', async function () {
+      const lastSeenNs = await freshNs();
+      await expect(adapter.updateFromReport(buildPayload({ lastSeenNs, marketStatus: 5 })))
+        .to.emit(adapter, 'ReportApplied')
+        .withArgs(5, 25_000n, lastSeenNs, true);
+    });
+
+    it('surfaces the adapter halt on the guard ERC-8392 interruption enum', async function () {
+      const ASSET_HALTED = 3;
+      await adapter.updateFromReport(
+        buildPayload({ lastSeenNs: await freshNs(), marketStatus: 0 }),
+      );
+      const status = await guard.referenceMarketStatus();
+      expect(status.interruption).to.equal(ASSET_HALTED);
+      expect(status.interruptionAsOf).to.be.gt(0);
+    });
   });
 });
