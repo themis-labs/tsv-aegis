@@ -240,7 +240,7 @@ above.
 - **Chain ID:** 421614
 - **TSVGuard:** [`0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433`](https://sepolia.arbiscan.io/address/0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433) — same address as the Base Sepolia deployment (same deployer, same nonce on both chains)
 - **Deploy tx:** [`0xdfdcb9ae42fb96c82e2bd96485ffe2096ce6e4f7e3869345f112c654fa849e4d`](https://sepolia.arbiscan.io/tx/0xdfdcb9ae42fb96c82e2bd96485ffe2096ce6e4f7e3869345f112c654fa849e4d)
-- **Source verification:** [exact match on Sourcify](https://repo.sourcify.dev/421614/0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433) · [Blockscout](https://arbitrum-sepolia.blockscout.com/address/0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433#code) · Arbiscan verification pending (submission queued on the explorer)
+- **Source verification:** [Arbiscan](https://sepolia.arbiscan.io/address/0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433#code) · [exact match on Sourcify](https://repo.sourcify.dev/421614/0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433) · [Blockscout](https://arbitrum-sepolia.blockscout.com/address/0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433#code)
 - **Deployed from commit:** `8cdf770f9377d41c075dbe834c5f737e543b7f38`
 
 End-to-end halt rehearsal against this deployment (full terminal log:
