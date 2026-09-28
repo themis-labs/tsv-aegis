@@ -36,12 +36,22 @@ describe('UniV4GuardedHook', function () {
   });
 
   it('lets a swap through while the guard allows trading', async function () {
+    // The guard is fail-closed until the oracle's first report.
+    await guard.connect(admin).setStockHaltStatus(false);
     const [selector, delta, feeOverride] = await hook
       .connect(poolManager)
       .beforeSwap.staticCall(stranger.address, POOL_KEY, SWAP_PARAMS, '0x');
     expect(selector).to.equal(hook.interface.getFunction('beforeSwap').selector);
     expect(delta).to.equal(0n);
     expect(feeOverride).to.equal(0n);
+  });
+
+  it('reverts the swap before the guard has seen any oracle report', async function () {
+    await expect(
+      hook
+        .connect(poolManager)
+        .beforeSwap.staticCall(stranger.address, POOL_KEY, SWAP_PARAMS, '0x'),
+    ).to.be.revertedWithCustomError(hook, 'TradingHalted');
   });
 
   it('reverts the swap while the guard is halted', async function () {

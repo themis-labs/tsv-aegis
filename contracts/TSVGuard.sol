@@ -27,7 +27,8 @@ contract TSVGuard is AccessControl, IAssetStatus, IReferenceMarketStatus {
     uint256 public maxDailyCap;
     uint256 public currentDailyVolume;
     uint64 public currentDay; // UTC day index: block.timestamp / 1 days
-    /// @notice Last time the oracle pushed a halt/resume signal (0 = never).
+    /// @notice Last time the oracle pushed a halt/resume signal (0 = never,
+    ///         and trading stays disabled until the first push arrives).
     uint64 public haltStatusUpdatedAt;
     /// @notice Reference-market session as last reported by the oracle.
     ///         Informational for ERC-8392 consumers; never gates trading.
@@ -69,9 +70,12 @@ contract TSVGuard is AccessControl, IAssetStatus, IReferenceMarketStatus {
         return uint64(block.timestamp / 1 days) == currentDay ? currentDailyVolume : 0;
     }
 
-    /// @notice Whether trading is currently allowed.
+    /// @notice Whether trading is currently allowed. Fail-closed
+    ///         initialization: the guard reads as disabled until the first
+    ///         oracle halt-status report arrives, so an untouched deployment
+    ///         never passes a trade through.
     function tradingEnabled() public view returns (bool) {
-        return !marketHalted && effectiveDailyVolume() < maxDailyCap;
+        return haltStatusUpdatedAt != 0 && !marketHalted && effectiveDailyVolume() < maxDailyCap;
     }
 
     /// @notice Relay a halt/resume signal from the underlying market.

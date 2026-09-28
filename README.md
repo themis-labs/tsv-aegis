@@ -64,7 +64,9 @@ project-specific getters.
 Interruption state maps from the halt flag (`ASSET_HALTED` / `NONE`, and
 `UNKNOWN` before the first oracle push, so uninitialized state never reads
 as a healthy market); session state likewise reports `UNKNOWN` until the
-first push from the session relay. Session reporting is informational for
+first push from the session relay. `tradingEnabled()` is fail-closed on
+the same condition: the guard reads as disabled until the first
+halt-status report arrives. Session reporting is informational for
 ERC-8392 consumers — it never gates `tradingEnabled()`.
 
 Two independent stop conditions, two separate flags:

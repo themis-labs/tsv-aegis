@@ -12,10 +12,32 @@ describe('TSVGuard', function () {
     guard = await TSVGuard.deploy(oracle.address, CAP);
   });
 
-  it('grants roles and starts with trading enabled', async function () {
+  // The guard is fail-closed until the oracle's first report, so any test
+  // that expects trading to be enabled pushes an initial not-halted signal.
+  const reportNotHalted = () => guard.connect(oracle).setStockHaltStatus(false);
+
+  it('grants roles and starts fail-closed until the first oracle report', async function () {
     const ORACLE_ROLE = await guard.ORACLE_ROLE();
     expect(await guard.hasRole(ORACLE_ROLE, oracle.address)).to.equal(true);
     expect(await guard.hasRole(await guard.DEFAULT_ADMIN_ROLE(), admin.address)).to.equal(true);
+    expect(await guard.tradingEnabled()).to.equal(false);
+  });
+
+  it('enables trading on the first not-halted report', async function () {
+    await expect(reportNotHalted())
+      .to.emit(guard, 'HaltUpdated')
+      .withArgs(false, 'Underlying NMS stock resumed');
+    expect(await guard.tradingEnabled()).to.equal(true);
+  });
+
+  it('keeps tradingEnabled consistent with the ERC-8392 view at init', async function () {
+    let status = await guard.referenceMarketStatus();
+    expect(status.interruption).to.equal(0n); // UNKNOWN
+    expect(await guard.tradingEnabled()).to.equal(false);
+
+    await reportNotHalted();
+    status = await guard.referenceMarketStatus();
+    expect(status.interruption).to.equal(1n); // NONE
     expect(await guard.tradingEnabled()).to.equal(true);
   });
 
@@ -53,6 +75,7 @@ describe('TSVGuard', function () {
   });
 
   it('blocks trading once the daily cap is reached', async function () {
+    await reportNotHalted();
     await guard.connect(oracle).recordVolume(CAP - 1n);
     expect(await guard.tradingEnabled()).to.equal(true);
 
@@ -61,6 +84,7 @@ describe('TSVGuard', function () {
   });
 
   it('re-enables trading on the next UTC day (lazy rollover)', async function () {
+    await reportNotHalted();
     await guard.connect(oracle).recordVolume(CAP);
     expect(await guard.tradingEnabled()).to.equal(false);
 
@@ -153,6 +177,7 @@ describe('TSVGuard', function () {
     });
 
     it('keeps session reporting orthogonal to halts and tradingEnabled', async function () {
+      await reportNotHalted();
       await guard.connect(oracle).setMarketSession(4, 0); // CLOSED
       // A closed session is informational: it must not gate trading.
       expect(await guard.tradingEnabled()).to.equal(true);
