@@ -7,7 +7,7 @@
       rel="icon"
       href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath fill='%2358a6ff' d='M8 1 2.5 3.2v4.1c0 3.4 2.3 6.3 5.5 7.7 3.2-1.4 5.5-4.3 5.5-7.7V3.2L8 1z'/%3E%3C/svg%3E"
     />
-    <title>Aegis — live demo (Base Sepolia)</title>
+    <title>Aegis — live demo</title>
     <style>
       :root {
         --bg: #0d1117;
@@ -127,8 +127,8 @@
         align-items: center;
         margin-top: 14px;
       }
-      input {
-        width: 110px;
+      input,
+      select {
         background: var(--bg);
         color: var(--text);
         border: 1px solid var(--border);
@@ -139,6 +139,12 @@
           SFMono-Regular,
           Menlo,
           monospace;
+      }
+      input {
+        width: 110px;
+      }
+      #net-select {
+        padding: 5px 8px;
       }
       #log {
         list-style: none;
@@ -179,7 +185,11 @@
     <main>
       <header>
         <h1>Aegis — live demo</h1>
-        <span class="badge">Base Sepolia · chain 84532</span>
+        <select id="net-select" aria-label="network">
+          <option value="84532" selected>Base Sepolia</option>
+          <option value="421614">Arbitrum Sepolia</option>
+        </select>
+        <span class="badge" id="net-badge">chain 84532</span>
       </header>
 
       <section class="card">
@@ -199,9 +209,7 @@
       <section class="card">
         <div class="row">
           <button id="btn-connect">Connect wallet</button>
-          <span class="hint" id="wallet-hint"
-            >reads work without a wallet; actions need one on Base Sepolia</span
-          >
+          <span class="hint" id="wallet-hint"></span>
         </div>
         <div class="row">
           <button id="btn-halt" class="danger" disabled>Trigger mock LULD halt</button>
@@ -236,10 +244,28 @@
       crossorigin="anonymous"
     ></script>
     <script>
-      const GUARD_ADDRESS = '0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433';
-      const VENUE_ADDRESS = '0x0A63F3Bf0d9d1bF7b395F924c9d5fd70efA61E87';
-      const CHAIN_ID = 84532n;
-      const EXPLORER = 'https://sepolia.basescan.org';
+      // TSVGuard and the demo venue sit at the same address on both
+      // testnets (same deployer, same nonce on each chain), but the config
+      // stays a per-network map so another network slots in by adding one
+      // entry here.
+      const NETWORKS = {
+        84532: {
+          chainId: 84532n,
+          name: 'Base Sepolia',
+          rpc: 'https://sepolia.base.org',
+          explorer: 'https://sepolia.basescan.org',
+          guard: '0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433',
+          venue: '0x0A63F3Bf0d9d1bF7b395F924c9d5fd70efA61E87',
+        },
+        421614: {
+          chainId: 421614n,
+          name: 'Arbitrum Sepolia',
+          rpc: 'https://sepolia-rollup.arbitrum.io/rpc',
+          explorer: 'https://sepolia.arbiscan.io',
+          guard: '0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433',
+          venue: '0x0A63F3Bf0d9d1bF7b395F924c9d5fd70efA61E87',
+        },
+      };
 
       const GUARD_ABI = [
         'function tradingEnabled() view returns (bool)',
@@ -250,11 +276,25 @@
       ];
       const VENUE_ABI = ['function trade(uint256 amount)'];
 
-      const readProvider = new ethers.JsonRpcProvider('https://sepolia.base.org');
-      const guardRead = new ethers.Contract(GUARD_ADDRESS, GUARD_ABI, readProvider);
+      const $ = (id) => document.getElementById(id);
+
+      let net = NETWORKS[$('net-select').value];
+      let readProvider = null;
+      let guardRead = null;
+      let provider = null;
       let signer = null;
 
-      const $ = (id) => document.getElementById(id);
+      function bindReads() {
+        readProvider = new ethers.JsonRpcProvider(net.rpc);
+        guardRead = new ethers.Contract(net.guard, GUARD_ABI, readProvider);
+      }
+
+      function bindAddressLinks() {
+        $('d-guard').href = `${net.explorer}/address/${net.guard}`;
+        $('d-guard').textContent = net.guard;
+        $('d-venue').href = `${net.explorer}/address/${net.venue}`;
+        $('d-venue').textContent = net.venue;
+      }
 
       function log(msg, txHash) {
         const li = document.createElement('li');
@@ -266,7 +306,7 @@
         if (txHash) {
           li.appendChild(document.createTextNode(' '));
           const a = document.createElement('a');
-          a.href = `${EXPLORER}/tx/${txHash}`;
+          a.href = `${net.explorer}/tx/${txHash}`;
           a.target = '_blank';
           a.rel = 'noopener';
           a.textContent = txHash.slice(0, 14) + '…';
@@ -294,13 +334,18 @@
         }
       }
 
+      // eth_chainId goes straight to the wallet, sidestepping the network
+      // caching ethers applies to BrowserProvider instances.
+      async function walletChainId() {
+        return BigInt(await window.ethereum.request({ method: 'eth_chainId' }));
+      }
+
       async function ensureChain() {
-        const chainId = (await signer.provider.getNetwork()).chainId;
-        if (chainId === CHAIN_ID) return;
+        if ((await walletChainId()) === net.chainId) return;
         try {
           await window.ethereum.request({
             method: 'wallet_switchEthereumChain',
-            params: [{ chainId: '0x' + CHAIN_ID.toString(16) }],
+            params: [{ chainId: '0x' + net.chainId.toString(16) }],
           });
         } catch (err) {
           if (err.code !== 4902) throw err;
@@ -308,31 +353,85 @@
             method: 'wallet_addEthereumChain',
             params: [
               {
-                chainId: '0x' + CHAIN_ID.toString(16),
-                chainName: 'Base Sepolia',
-                rpcUrls: ['https://sepolia.base.org'],
+                chainId: '0x' + net.chainId.toString(16),
+                chainName: net.name,
+                rpcUrls: [net.rpc],
                 nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
-                blockExplorerUrls: [EXPLORER],
+                blockExplorerUrls: [net.explorer],
               },
             ],
           });
         }
       }
 
+      async function updateWalletUI() {
+        if (!signer) {
+          $('wallet-hint').textContent =
+            `reads work without a wallet; actions need one on ${net.name}`;
+          return;
+        }
+        const chainId = await walletChainId();
+        if (chainId === net.chainId) {
+          $('wallet-hint').textContent = `connected on ${net.name}`;
+          for (const id of ['btn-halt', 'btn-resume', 'btn-trade']) $(id).disabled = false;
+        } else {
+          const known = Object.values(NETWORKS).find((n) => n.chainId === chainId);
+          $('wallet-hint').textContent =
+            `wallet is on ${known ? known.name : 'chain ' + chainId} — ` +
+            `switch to ${net.name} for actions`;
+          for (const id of ['btn-halt', 'btn-resume', 'btn-trade']) $(id).disabled = true;
+        }
+      }
+
+      $('net-select').onchange = async () => {
+        net = NETWORKS[$('net-select').value];
+        $('net-badge').textContent = `chain ${net.chainId}`;
+        bindReads();
+        bindAddressLinks();
+        await refresh();
+        if (signer) {
+          try {
+            await ensureChain();
+          } catch (err) {
+            log(`network switch: ${err.shortMessage || err.message}`);
+          }
+        }
+        await updateWalletUI();
+      };
+
       $('btn-connect').onclick = async () => {
         if (!window.ethereum) {
           log('no injected wallet found — install MetaMask or any EIP-1193 wallet');
           return;
         }
-        signer = await new ethers.BrowserProvider(window.ethereum).getSigner();
-        await ensureChain();
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer = await provider.getSigner();
+        try {
+          await ensureChain();
+        } catch (err) {
+          log(`network switch: ${err.shortMessage || err.message}`);
+        }
+        // Rebuild provider/signer after a possible chain switch so no stale
+        // network state leaks into the action calls.
+        provider = new ethers.BrowserProvider(window.ethereum);
+        signer = await provider.getSigner();
         const addr = await signer.getAddress();
         $('btn-connect').textContent = addr.slice(0, 6) + '…' + addr.slice(-4);
         $('btn-connect').disabled = true;
-        $('wallet-hint').textContent = 'connected on Base Sepolia';
-        for (const id of ['btn-halt', 'btn-resume', 'btn-trade']) $(id).disabled = false;
         log(`connected ${addr}`);
+        await updateWalletUI();
       };
+
+      // The wallet can hop chains on its own; keep the action buttons in
+      // sync with whatever chain it lands on.
+      if (window.ethereum) {
+        window.ethereum.on('chainChanged', async () => {
+          if (!signer) return;
+          provider = new ethers.BrowserProvider(window.ethereum);
+          signer = await provider.getSigner();
+          await updateWalletUI();
+        });
+      }
 
       async function send(label, fn) {
         try {
@@ -356,12 +455,12 @@
 
       $('btn-halt').onclick = () =>
         send('mock LULD halt', () =>
-          new ethers.Contract(GUARD_ADDRESS, GUARD_ABI, signer).setStockHaltStatus(true),
+          new ethers.Contract(net.guard, GUARD_ABI, signer).setStockHaltStatus(true),
         );
 
       $('btn-resume').onclick = () =>
         send('resume signal', () =>
-          new ethers.Contract(GUARD_ADDRESS, GUARD_ABI, signer).setStockHaltStatus(false),
+          new ethers.Contract(net.guard, GUARD_ABI, signer).setStockHaltStatus(false),
         );
 
       $('btn-trade').onclick = () => {
@@ -369,15 +468,13 @@
         // Explicit gasLimit skips pre-flight estimation so a halted trade is
         // actually mined and reverts on-chain instead of dying in the wallet.
         return send('trade attempt', () =>
-          new ethers.Contract(VENUE_ADDRESS, VENUE_ABI, signer).trade(amount, { gasLimit: 100000 }),
+          new ethers.Contract(net.venue, VENUE_ABI, signer).trade(amount, { gasLimit: 100000 }),
         );
       };
 
-      $('d-guard').href = `${EXPLORER}/address/${GUARD_ADDRESS}`;
-      $('d-guard').textContent = GUARD_ADDRESS;
-      $('d-venue').href = `${EXPLORER}/address/${VENUE_ADDRESS}`;
-      $('d-venue').textContent = VENUE_ADDRESS;
-
+      bindReads();
+      bindAddressLinks();
+      updateWalletUI();
       refresh();
       setInterval(refresh, 12000);
     </script>

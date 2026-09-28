@@ -274,7 +274,7 @@ test/ChainlinkStreamsAdapter.test.js  adapter unit tests
 docs/e2e-simulation-base-sepolia.log  recorded e2e halt rehearsal on Base Sepolia
 docs/e2e-simulation-base-mainnet.log  recorded e2e halt rehearsal on Base mainnet
 docs/e2e-simulation-arbitrum-sepolia.log  recorded e2e halt rehearsal on Arbitrum Sepolia
-docs/demo/index.html          wallet-driven live demo against the Base Sepolia deployment
+docs/demo/index.html          wallet-driven live demo against the Base Sepolia and Arbitrum Sepolia deployments
 ```
 
 ## Compliance mapping

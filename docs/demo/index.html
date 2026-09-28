@@ -116,7 +116,7 @@
     <main>
       <header>
         <h1>Aegis — demo</h1>
-        <span class="badge">Base Sepolia · chain 84532</span>
+        <span class="badge">Base Sepolia · Arbitrum Sepolia</span>
       </header>
 
       <section class="card">
@@ -135,10 +135,11 @@
       <section class="card">
         <a class="cta" href="./app/">Launch the live demo</a>
         <p class="hint">
-          The live page reads guard state straight from the chain, no wallet needed. Connect one on
-          Base Sepolia to fire the mock halt/resume relay calls (gated by
-          <code>ORACLE_ROLE</code>, so an arbitrary wallet gets rejected) and to attempt a trade
-          while halted, which leaves a reverted receipt on the explorer.
+          The live page reads guard state straight from the chain, no wallet needed — pick Base
+          Sepolia or Arbitrum Sepolia in the page header. Connect a wallet on the selected network
+          to fire the mock halt/resume relay calls (gated by <code>ORACLE_ROLE</code>, so an
+          arbitrary wallet gets rejected) and to attempt a trade while halted, which leaves a
+          reverted receipt on the explorer.
         </p>
       </section>
 
@@ -146,27 +147,42 @@
         <dl>
           <dt>guard contract</dt>
           <dd>
-            <a
+            0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433 (<a
               href="https://sepolia.basescan.org/address/0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433"
               target="_blank"
               rel="noopener"
-              >0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433</a
+              >basescan</a
             >
+            ·
+            <a
+              href="https://sepolia.arbiscan.io/address/0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433"
+              target="_blank"
+              rel="noopener"
+              >arbiscan</a
+            >)
           </dd>
           <dt>demo venue</dt>
           <dd>
-            <a
+            0x0A63F3Bf0d9d1bF7b395F924c9d5fd70efA61E87 (<a
               href="https://sepolia.basescan.org/address/0x0A63F3Bf0d9d1bF7b395F924c9d5fd70efA61E87"
               target="_blank"
               rel="noopener"
-              >0x0A63F3Bf0d9d1bF7b395F924c9d5fd70efA61E87</a
+              >basescan</a
             >
+            ·
+            <a
+              href="https://sepolia.arbiscan.io/address/0x0A63F3Bf0d9d1bF7b395F924c9d5fd70efA61E87"
+              target="_blank"
+              rel="noopener"
+              >arbiscan</a
+            >)
           </dd>
           <dt>source</dt>
           <dd>
             <a href="https://github.com/themis-labs/tsv-aegis">github.com/themis-labs/tsv-aegis</a>
           </dd>
         </dl>
+        <p class="hint">Same contract addresses on both networks (same deployer, same nonce).</p>
       </section>
 
       <footer>
