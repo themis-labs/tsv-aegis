@@ -1,0 +1,11 @@
+Signer: 0x84E2E8BC8d5F511f60774f2191d1149ca0dd3643
+Reusing TSVGuard at 0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433
+MockVenue deployed at 0x0A63F3Bf0d9d1bF7b395F924c9d5fd70efA61E87
+1. pre-halt trade (should succeed): tx 0x99f8a2cc6603f142dd8b3940b51b549791574c65527cfaeb954302ad72a3464a
+2. mock LULD halt signal: tx 0xd39eb167d5b6ae0913ee7533710cb772d45a76cefee9b2a7e05efe8cc65d7bdf
+3. tradingEnabled() after halt: false
+4. trade during halt rejected: transaction execution reverted
+   rejected tx hash: 0xa22e2a36c08e79e98c500729d013cb4bbfdccba061761119c811154a54187b6b
+5. resume signal: tx 0x6531c2266803a2136d87f47a069e381fd0c384a1ee8daeb630b5770bf737ddc7
+6. post-resume trade (should succeed): tx 0x93e466ebd2a245acebb1f09d0ad55ccc571241f1c016e858e7ceb392cd36c591
+End-to-end simulation complete.

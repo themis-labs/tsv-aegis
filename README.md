@@ -176,8 +176,9 @@ npm run start:session   # venue session clock (ERC-8392 session reporting)
 ```
 
 For mainnet, use `npm run deploy:base` with `BASE_RPC` and a funded deployer
-key. Arbitrum Sepolia remains available via `npm run deploy:arbitrum-sepolia`
-for cross-chain testing.
+key. A live Arbitrum Sepolia deployment (with a recorded halt rehearsal) is
+listed in the deployment records below; redeploy with
+`npm run deploy:arbitrum-sepolia` for cross-chain testing.
 
 With `VERIFY=true` and an [Etherscan V2](https://docs.etherscan.io/) API key
 set (one key covers Basescan, Arbiscan, and Etherscan), deployment also
@@ -231,6 +232,29 @@ End-to-end halt rehearsal against this deployment (full terminal log:
 All transactions are test assets on a public testnet; see the disclaimer
 above.
 
+## Deployment record (Arbitrum Sepolia)
+
+- **Network:** Arbitrum Sepolia
+- **Chain ID:** 421614
+- **TSVGuard:** [`0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433`](https://sepolia.arbiscan.io/address/0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433) — same address as the Base Sepolia deployment (same deployer, same nonce on both chains)
+- **Deploy tx:** [`0xdfdcb9ae42fb96c82e2bd96485ffe2096ce6e4f7e3869345f112c654fa849e4d`](https://sepolia.arbiscan.io/tx/0xdfdcb9ae42fb96c82e2bd96485ffe2096ce6e4f7e3869345f112c654fa849e4d)
+- **Source verification:** [exact match on Sourcify](https://repo.sourcify.dev/421614/0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433) · [Blockscout](https://arbitrum-sepolia.blockscout.com/address/0xBAcaF3d2765dcc314ee22CB19b87Cf755f5A6433#code) · Arbiscan verification pending (submission queued on the explorer)
+- **Deployed from commit:** `8cdf770f9377d41c075dbe834c5f737e543b7f38`
+
+End-to-end halt rehearsal against this deployment (full terminal log:
+[`docs/e2e-simulation-arbitrum-sepolia.log`](docs/e2e-simulation-arbitrum-sepolia.log)):
+
+| Step                                            | Tx hash                                                              |
+| ----------------------------------------------- | -------------------------------------------------------------------- |
+| Pre-halt trade (succeeded)                      | `0x99f8a2cc6603f142dd8b3940b51b549791574c65527cfaeb954302ad72a3464a` |
+| Mock LULD halt signal (`setStockHaltStatus`)    | `0xd39eb167d5b6ae0913ee7533710cb772d45a76cefee9b2a7e05efe8cc65d7bdf` |
+| Trade during halt (reverted on-chain, as mined) | `0xa22e2a36c08e79e98c500729d013cb4bbfdccba061761119c811154a54187b6b` |
+| Resume signal                                   | `0x6531c2266803a2136d87f47a069e381fd0c384a1ee8daeb630b5770bf737ddc7` |
+| Post-resume trade (succeeded)                   | `0x93e466ebd2a245acebb1f09d0ad55ccc571241f1c016e858e7ceb392cd36c591` |
+
+All transactions are test assets on a public testnet; see the disclaimer
+above.
+
 ## Repository layout
 
 ```
@@ -249,6 +273,7 @@ test/TSVGuard.test.js           unit tests
 test/ChainlinkStreamsAdapter.test.js  adapter unit tests
 docs/e2e-simulation-base-sepolia.log  recorded e2e halt rehearsal on Base Sepolia
 docs/e2e-simulation-base-mainnet.log  recorded e2e halt rehearsal on Base mainnet
+docs/e2e-simulation-arbitrum-sepolia.log  recorded e2e halt rehearsal on Arbitrum Sepolia
 docs/demo/index.html          wallet-driven live demo against the Base Sepolia deployment
 ```
 
