@@ -110,6 +110,9 @@ Price-integrity and oracle-freshness signals may be layered on by venues
 as optional policy modules; they are inputs to venue policy, not part of
 the guard's core decision.
 
+The trust model, known limitations, and operator checklist are documented
+in [docs/security-assumptions.md](docs/security-assumptions.md).
+
 ## Roadmap
 
 - **v0.1** — Polygon.io LULD relay, single `ORACLE_ROLE`, relay-recorded
