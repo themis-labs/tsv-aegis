@@ -19,6 +19,9 @@ reporter once a fix is available. There is no bug bounty program.
 
 ## Scope notes
 
+The trust model and known limitations below are documented in detail in
+[docs/security-assumptions.md](docs/security-assumptions.md).
+
 The following are documented design properties, not vulnerabilities:
 
 - **Single-relay trust assumption.** In v1 the oracle is one `ORACLE_ROLE`
